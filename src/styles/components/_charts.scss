@@ -1,0 +1,32 @@
+@use '../abstracts/variables' as *;
+
+// Chart container styles
+.chart-container {
+  position: relative;
+  width: 100%;
+  
+  &--compact {
+    height: 120px;
+  }
+  
+  &--medium {
+    height: 210px;
+  }
+  
+  &--large {
+    height: 230px;
+  }
+}
+
+// Donut chart styles
+.donut-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 14px;
+}
+
+// Sparkline wrapper
+.sparkline {
+  width: 80px;
+  height: 32px;
+}

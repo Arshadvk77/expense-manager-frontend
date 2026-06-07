@@ -1,0 +1,10 @@
+// @use all modules first
+@use './abstracts/variables';
+@use './components/charts';
+@use './components/cards';
+@use './components/modals';
+@use './components/utilities';
+@use './layouts/auth';
+
+// Then include theme.css as a regular CSS import (not Sass)
+// You can import this directly in your main.jsx instead

@@ -1,0 +1,106 @@
+@use '../abstracts/variables' as *;
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 16px;
+
+  label {
+    font-size: 12px;
+    font-weight: 600;
+    color: $muted;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__link {
+    color: $wine;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.form-input {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  background: $card;
+  // border: 1px solid $line-2;
+  color: $ink;
+  width: 100%;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: 2px solid $wine-tint;
+    border-color: $wine-soft;
+  }
+
+  &::placeholder {
+    color: rgba($muted, 0.5);
+  }
+}
+
+// Currency selector for register page
+.currency-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.currency-btn {
+  flex: 1 0 21%;
+  padding: 11px 0;
+  border-radius: 12px;
+  cursor: pointer;
+  // border: 1px solid $line-2;
+  background: $card;
+  color: $muted;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: $wine;
+  }
+
+  &--active {
+    border-color: $wine;
+    background: $wine-tint;
+    color: $wine;
+  }
+}
+
+// Divider component
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+
+  &__line {
+    flex: 1;
+    height: 1px;
+    background: $line;
+  }
+
+  &__text {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: $muted;
+  }
+}

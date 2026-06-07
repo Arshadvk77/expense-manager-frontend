@@ -1,0 +1,55 @@
+@use '../abstracts/variables' as *;
+@use 'sass:color';
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 15px;
+  border-radius: 13px;
+  border: 1px solid $line;
+  background: $card;
+  color: $ink;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+
+  &:hover {
+    background: var(--card-2);
+  }
+
+  // Variants
+  &--primary {
+    background: $wine;
+    color: #fff;
+    border-color: $wine;
+    box-shadow: $shadow-wine;
+
+    &:hover {
+      background: $wine-2;
+    }
+  }
+
+  &--ghost {
+    border-color: transparent;
+    background: transparent;
+    color: $ink-2;
+
+    &:hover {
+      background: $bg-2;
+    }
+  }
+
+  // Sizes
+  &--large {
+    padding: 13px 20px;
+    font-size: 14px;
+    border-radius: 15px;
+  }
+
+  &--full {
+    width: 100%;
+    justify-content: center;
+  }
+}

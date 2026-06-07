@@ -1,0 +1,187 @@
+@use '../abstracts/variables' as *;
+
+// Layout utilities (extending your existing ones)
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  
+  @media (max-width: $breakpoint-tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cols-main {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 16px;
+  
+  @media (max-width: $breakpoint-tablet) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Amount text sizes
+.amount-xl {
+  font-size: 52px;
+  font-weight: 800;
+  
+  @media (max-width: $breakpoint-md) {
+    font-size: 38px !important;
+  }
+}
+
+.amount-lg {
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.amount-md {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+// Transaction table responsive
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  @media (max-width: $breakpoint-md) {
+    thead {
+      display: none;
+    }
+    
+    tbody, tr, td {
+      display: block;
+    }
+    
+    tr {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3px 14px;
+      padding: 14px 2px;
+      border-bottom: 1px solid $line;
+      align-items: center;
+      
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+    
+    td {
+      padding: 0 !important;
+      border: 0 !important;
+      width: auto !important;
+    }
+    
+    td:nth-child(1) { grid-area: 1 / 1; }
+    td:nth-child(4) { grid-area: 1 / 2; text-align: right; }
+    td:nth-child(2) { grid-area: 2 / 1; }
+    td:nth-child(5) { grid-area: 2 / 2; text-align: right; }
+    td:nth-child(3) { grid-area: 3 / 1; }
+    td:nth-child(6) { grid-area: 3 / 2; text-align: right; }
+  }
+}
+
+// Mini table for dashboard
+.mini-table {
+  tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    padding: 12px 2px;
+    border-bottom: 1px solid $line;
+    align-items: center;
+    
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+  
+  td {
+    padding: 0 !important;
+    border: 0 !important;
+    width: auto !important;
+  }
+  
+  td:nth-child(1) { grid-area: 1 / 1; }
+  td:nth-child(2) { grid-area: 1 / 2; text-align: right; }
+  td:nth-child(3) { display: none; }
+  
+  @media (max-width: $breakpoint-md) {
+    td:nth-child(3) { display: none; }
+  }
+}
+
+// Category grid
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  
+  &__button {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    align-items: flex-start;
+    cursor: pointer;
+    text-align: left;
+    
+    &--active {
+      border-color: $wine;
+      box-shadow: 0 0 0 3px $wine-tint;
+    }
+  }
+}
+
+// Currency selector chips
+.currency-chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  
+  .chip {
+    cursor: pointer;
+    
+    &--active {
+      background: $wine-tint;
+      color: $wine;
+    }
+  }
+}
+
+// Amount display row
+.amount-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+//   border-bottom: 1px solid $line-2;
+  padding-bottom: 14px;
+  margin-top: 8px;
+  
+  &__currency {
+    font-size: 15px;
+    color: $muted;
+  }
+  
+  &__value {
+    font-size: 52px;
+    font-weight: 800;
+    
+    &-cents {
+      color: $muted;
+    }
+  }
+  
+  &__inr {
+    margin-left: auto;
+    font-size: 13px;
+    color: $muted;
+  }
+}
