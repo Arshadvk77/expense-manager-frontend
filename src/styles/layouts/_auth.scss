@@ -34,14 +34,18 @@
     flex: 0 0 auto !important;
     border-radius: 0 !important;
     padding: 30px 24px 34px !important;
+    display:none;
   }
 
   @media (max-width: $breakpoint-md) {
     padding: 32px;
+    display:none;
   }
 
   @media (max-width: $breakpoint-sm) {
     padding: 24px;
+        display:none;
+
   }
 
   // Decorative circles
@@ -144,6 +148,7 @@
   @media (max-width: $breakpoint-tablet) {
     padding: 30px 22px 44px !important;
     align-items: flex-start !important;
+    display: none;
   }
 
   @media (max-width: $breakpoint-md) {

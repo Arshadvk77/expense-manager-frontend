@@ -1,6 +1,8 @@
 import { useNavigate, useLocation, Outlet, useOutletContext } from 'react-router-dom';
 import { Icon } from './Icon.jsx';
 import { useApp } from '../context.jsx';
+import { useAuth } from '../hooks/useAuth';
+import { useState } from 'react';
 
 const ROUTE = { home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions', reports: '/reports', convert: '/convert', settings: '/settings' };
 
@@ -8,6 +10,8 @@ function Sidebar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { ccy, setCcy } = useApp();
+  const { logout, user } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const groups = [
     { label: 'Overview', items: [
@@ -24,7 +28,25 @@ function Sidebar() {
       { id: 'settings', label: 'Settings', icon: 'gear' },
     ]},
   ];
+  
   const on = id => pathname === ROUTE[id];
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      // Navigation happens inside logout function
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Get user initial for avatar
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'R';
 
   return (
     <aside className="sidebar">
@@ -73,13 +95,47 @@ function Sidebar() {
       </div>
 
       <div className="s-user">
-        <div className="av">R</div>
+        <div className="av">{userInitial}</div>
         <div style={{ flex: 1 }}>
-          <div className="nm">Rashid Ahmed</div>
+          <div className="nm">{user?.name || 'Rashid Ahmed'}</div>
           <div className="sub">Dubai · {ccy}</div>
         </div>
-        <span style={{ color: 'var(--muted)', cursor: 'pointer' }} onClick={() => navigate('/')}><Icon name="logout" size={16} /></span>
+        <button 
+          onClick={handleLogout} 
+          disabled={isLoggingOut}
+          style={{ 
+            color: 'var(--muted)', 
+            cursor: isLoggingOut ? 'not-allowed' : 'pointer',
+            background: 'none',
+            border: 'none',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            opacity: isLoggingOut ? 0.6 : 1,
+            transition: 'opacity 0.2s'
+          }}
+          title="Logout"
+        >
+          {isLoggingOut ? (
+            <div className="logout-spinner" style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid var(--muted)',
+              borderTopColor: 'transparent',
+              borderRadius: '50%',
+              animation: 'spin 0.6s linear infinite'
+            }} />
+          ) : (
+            <Icon name="logout" size={16} />
+          )}
+        </button>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </aside>
   );
 }
@@ -88,6 +144,7 @@ function BottomNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const on = id => pathname === ROUTE[id];
+  
   return (
     <nav className="bottom-nav">
       <button className={'bn-item ' + (on('home') ? 'on' : '')} onClick={() => navigate(ROUTE.home)}>
@@ -111,11 +168,19 @@ function BottomNav() {
 
 export default function Layout() {
   const { ccy, dark, setDark, setCcy } = useApp();
+  const { user, isAuthenticated } = useAuth();
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+    window.location.href = '/login';
+    return null;
+  }
+
   return (
     <div className="app">
       <Sidebar />
       <div className="main">
-        <Outlet context={{ ccy, dark, setDark, setCcy }} />
+        <Outlet context={{ ccy, dark, setDark, setCcy, user }} />
       </div>
       <BottomNav />
     </div>
@@ -135,8 +200,13 @@ export function Topbar({ title, sub, children }) {
       </div>
       <div className="tb-right">
         {children}
-        <button className="icon-btn tb-hide-sm" onClick={() => navigate('/convert')}><Icon name="mail" size={17} /></button>
-        <button className="icon-btn tb-hide-sm"><span className="dot" /><Icon name="bell" size={17} /></button>
+        <button className="icon-btn tb-hide-sm" onClick={() => navigate('/convert')}>
+          <Icon name="mail" size={17} />
+        </button>
+        <button className="icon-btn tb-hide-sm">
+          <span className="dot" />
+          <Icon name="bell" size={17} />
+        </button>
         <div className="ava tb-hide-sm">R</div>
       </div>
     </header>
