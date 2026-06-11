@@ -3,11 +3,16 @@ import { Icon } from '../components/Icon.jsx';
 import { Sparkline, AreaChart, Donut } from '../components/Charts.jsx';
 import { useNavigate } from 'react-router-dom';
 import { RATES, SYMBOL, toINR, fmt } from '../lib/currency.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { Toggle } from '../components/Toggle.jsx';
+import { SiteNav } from '../components/SiteChrome.jsx';
 
 export default function Dashboard() {
-  const { ccy } = usePage();
+
   const navigate = useNavigate();
+    const { logout, user } = useAuth();
   const inr = a => '₹' + fmt(Math.round(toINR(a, ccy)));
+  const { ccy, dark, setDark, setCcy } = usePage();
 
   const stats = [
     { ic: 'wine',  icon: 'wallet', lbl: 'Total saved', val: 8420, delta: '12.4%', up: true,  spark: [40, 52, 48, 61, 58, 72, 80], color: 'var(--wine)' },
@@ -43,8 +48,9 @@ export default function Dashboard() {
 
   return (
     <>
-      <Topbar title="Welcome back, Rashid" sub="Here's how your money moved this month.">
+      <Topbar title={"Welcome back " + user?.name} sub="Here's how your money moved this month.">
         <div className="seg" style={{ marginRight: 4 }}>
+
           <button>Week</button><button className="on">Month</button><button>Year</button>
         </div>
         <button className="btn pri" onClick={() => navigate('/income')}><Icon name="plus" size={16} /> Add</button>

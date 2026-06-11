@@ -1,15 +1,17 @@
-import { useNavigate, useLocation, Outlet, useOutletContext } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, useOutletContext, Link } from 'react-router-dom';
 import { Icon } from './Icon.jsx';
 import { useApp } from '../context.jsx';
 import { useAuth } from '../hooks/useAuth';
 import { useState } from 'react';
+import { Toggle } from './Toggle.jsx';
 
 const ROUTE = { home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions', reports: '/reports', convert: '/convert', settings: '/settings' };
 
 function Sidebar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { ccy, setCcy } = useApp();
+  const { ccy, setCcy, dark, setDark } = useApp(); // ← dark/setDark from useApp, not usePage
+
   const { logout, user } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -37,7 +39,6 @@ function Sidebar() {
     setIsLoggingOut(true);
     try {
       await logout();
-      // Navigation happens inside logout function
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
@@ -45,22 +46,23 @@ function Sidebar() {
     }
   };
 
-  // Get user initial for avatar
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'R';
 
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <div className="mk">K</div>
-        <div className="nm">Khaleej<small>Gulf · India</small></div>
-      </div>
+      <Link to="/">  
+        <div className="brand">
+          <div className="mk">K</div>
+          <div className="nm">Khaleej<small>Gulf · India</small></div>
+        </div>
+      </Link>
 
       <div className="s-search">
         <Icon name="search" size={15} />
         <input placeholder="Search" />
       </div>
 
-      <div style={{ flex: '0 0 auto', overflowY: 'auto' }}>
+      <div className="s-nav-scroll">
         {groups.map(g => (
           <div key={g.label}>
             <div className="s-label">{g.label}</div>
@@ -73,19 +75,6 @@ function Sidebar() {
             ))}
           </div>
         ))}
-
-        <div className="s-label">Primary currency</div>
-        <div style={{ display: 'flex', gap: 6, padding: '2px 10px 6px', flexWrap: 'wrap' }}>
-          {['AED', 'OMR', 'SAR', 'QAR'].map(c => (
-            <button key={c} onClick={() => setCcy(c)} style={{
-              flex: '1 0 40%', padding: '7px 0', borderRadius: 10, cursor: 'pointer',
-              border: '1px solid ' + (ccy === c ? 'var(--wine)' : 'var(--line)'),
-              background: ccy === c ? 'var(--wine-tint)' : 'transparent',
-              color: ccy === c ? 'var(--wine)' : 'var(--muted)',
-              fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700,
-            }}>{c}</button>
-          ))}
-        </div>
       </div>
 
       <div className="s-card">
@@ -170,7 +159,6 @@ export default function Layout() {
   const { ccy, dark, setDark, setCcy } = useApp();
   const { user, isAuthenticated } = useAuth();
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
     window.location.href = '/login';
     return null;
@@ -192,6 +180,8 @@ export const usePage = () => useOutletContext();
 // Shared topbar used by pages
 export function Topbar({ title, sub, children }) {
   const navigate = useNavigate();
+  const { dark, setDark } = usePage();
+
   return (
     <header className="topbar">
       <div>
@@ -199,6 +189,7 @@ export function Topbar({ title, sub, children }) {
         {sub && <div className="sub">{sub}</div>}
       </div>
       <div className="tb-right">
+        <Toggle on={dark} onClick={() => setDark(d => !d)} />
         {children}
         <button className="icon-btn tb-hide-sm" onClick={() => navigate('/convert')}>
           <Icon name="mail" size={17} />

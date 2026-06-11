@@ -1,16 +1,15 @@
 import { usePage, Topbar } from '../components/Layout.jsx';
 import { Icon } from '../components/Icon.jsx';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.js';
+import { Toggle } from '../components/Toggle.jsx';
 
-const Toggle = ({ on, onClick }) => (
-  <span onClick={onClick} style={{ width: 38, height: 22, background: on ? 'var(--wine)' : 'var(--line-2)', borderRadius: 999, position: 'relative', cursor: 'pointer', transition: 'background .15s', flexShrink: 0 }}>
-    <span style={{ position: 'absolute', width: 16, height: 16, borderRadius: 999, background: '#fff', top: 3, left: on ? 19 : 3, transition: 'left .15s', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
-  </span>
-);
+
 
 export default function Settings() {
   const { ccy, dark, setDark, setCcy } = usePage();
   const navigate = useNavigate();
+  const {user} = useAuth();
 
   const Row = ({ title, sub, control, last }) => (
     <div className="row between center" style={{ padding: '14px 0', borderTop: '1px solid var(--line)' }}>
@@ -35,7 +34,7 @@ export default function Settings() {
         <Section label="Profile" title="Your account">
           <div className="row center" style={{ gap: 14, padding: '8px 0 4px' }}>
             <div className="ava" style={{ width: 54, height: 54, borderRadius: 16, fontSize: 22 }}>R</div>
-            <div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.02em' }}>Rashid Ahmed</div><div className="muted" style={{ fontSize: 12.5 }}>rashid.a@khaleej.app · Dubai</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.02em' }}>{user?.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{user?.email} · Dubai</div></div>
             <button className="btn">Edit</button>
           </div>
           <Row title="Country" sub="Used for rate sources and local time" control={<span style={{ fontSize: 13 }}>United Arab Emirates</span>} />

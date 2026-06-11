@@ -15,6 +15,12 @@ import Convert from './pages/Convert.jsx';
 import Settings from './pages/Settings.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import CurrencySetup from './pages/Setup/CurrencySetup.jsx';
+import Landing from './pages/Landing.jsx';
+import Pricing from './pages/Pricing.jsx';
+import About from './pages/About.jsx';
+import Contact from './pages/Contact.jsx';
+import Terms from './pages/Terms.jsx';
+import Privacy from './pages/Privacy.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -40,9 +46,15 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
+      <Route path="/" element={<Landing/>} />
+      <Route path="/pricing" element={<Pricing />} />
+       <Route path="/about" element={<About />} />
+       <Route path="/contact" element={<Contact />} /> 
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-      <Route path="/forgot" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+      <Route path="/forgot" element={<GuestRoute><ForgotPassword /></GuestRoute>} /> 
 
       <Route path="/setup/currency" element={<ProtectedRoute><CurrencySetup /></ProtectedRoute>} />
 

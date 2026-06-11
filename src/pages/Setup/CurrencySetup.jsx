@@ -1,68 +1,74 @@
 // src/pages/Setup/CurrencySetup.jsx
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Alert } from '../../components/Alert';
 import { Icon } from '../../components/Icon';
 import '../../styles/setup.scss';
+import apiClient from '../../api/client';
 
 export default function CurrencySetup() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [primaryCurrency, setPrimaryCurrency] = useState('AED');
-  const [additionalCurrencies, setAdditionalCurrencies] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [alert, setAlert] = useState(null);
 
-  // Complete list of world currencies
+  const [primaryCurrency, setPrimaryCurrency]       = useState(
+    user?.preferences?.primary_currency ?? 'AED'    // pre-fill if returning user
+  );
+  const [additionalCurrencies, setAdditionalCurrencies] = useState(
+    user?.preferences?.tracked_currencies ?? []
+  );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading]   = useState(false);
+  const [alert, setAlert]           = useState(null);
+
   const allCurrencies = [
-    { code: 'AED', name: 'UAE Dirham', country: 'United Arab Emirates', flag: '🇦🇪', symbol: 'د.إ' },
-    { code: 'USD', name: 'US Dollar', country: 'United States', flag: '🇺🇸', symbol: '$' },
-    { code: 'EUR', name: 'Euro', country: 'European Union', flag: '🇪🇺', symbol: '€' },
-    { code: 'GBP', name: 'British Pound', country: 'United Kingdom', flag: '🇬🇧', symbol: '£' },
-    { code: 'INR', name: 'Indian Rupee', country: 'India', flag: '🇮🇳', symbol: '₹' },
-    { code: 'SAR', name: 'Saudi Riyal', country: 'Saudi Arabia', flag: '🇸🇦', symbol: '﷼' },
-    { code: 'OMR', name: 'Omani Rial', country: 'Oman', flag: '🇴🇲', symbol: 'ر.ع.' },
-    { code: 'QAR', name: 'Qatari Riyal', country: 'Qatar', flag: '🇶🇦', symbol: 'ر.ق' },
-    { code: 'KWD', name: 'Kuwaiti Dinar', country: 'Kuwait', flag: '🇰🇼', symbol: 'د.ك' },
-    { code: 'BHD', name: 'Bahraini Dinar', country: 'Bahrain', flag: '🇧🇭', symbol: '.د.ب' },
-    { code: 'TRY', name: 'Turkish Lira', country: 'Turkey', flag: '🇹🇷', symbol: '₺' },
-    { code: 'EGP', name: 'Egyptian Pound', country: 'Egypt', flag: '🇪🇬', symbol: '£' },
-    { code: 'PKR', name: 'Pakistani Rupee', country: 'Pakistan', flag: '🇵🇰', symbol: '₨' },
-    { code: 'BDT', name: 'Bangladeshi Taka', country: 'Bangladesh', flag: '🇧🇩', symbol: '৳' },
-    { code: 'LKR', name: 'Sri Lankan Rupee', country: 'Sri Lanka', flag: '🇱🇰', symbol: 'Rs' },
-    { code: 'NPR', name: 'Nepalese Rupee', country: 'Nepal', flag: '🇳🇵', symbol: 'रु' },
-    { code: 'PHP', name: 'Philippine Peso', country: 'Philippines', flag: '🇵🇭', symbol: '₱' },
-    { code: 'IDR', name: 'Indonesian Rupiah', country: 'Indonesia', flag: '🇮🇩', symbol: 'Rp' },
-    { code: 'MYR', name: 'Malaysian Ringgit', country: 'Malaysia', flag: '🇲🇾', symbol: 'RM' },
-    { code: 'SGD', name: 'Singapore Dollar', country: 'Singapore', flag: '🇸🇬', symbol: 'S$' },
-    { code: 'THB', name: 'Thai Baht', country: 'Thailand', flag: '🇹🇭', symbol: '฿' },
-    { code: 'VND', name: 'Vietnamese Dong', country: 'Vietnam', flag: '🇻🇳', symbol: '₫' },
-    { code: 'CNY', name: 'Chinese Yuan', country: 'China', flag: '🇨🇳', symbol: '¥' },
-    { code: 'JPY', name: 'Japanese Yen', country: 'Japan', flag: '🇯🇵', symbol: '¥' },
-    { code: 'KRW', name: 'South Korean Won', country: 'South Korea', flag: '🇰🇷', symbol: '₩' },
-    { code: 'AUD', name: 'Australian Dollar', country: 'Australia', flag: '🇦🇺', symbol: 'A$' },
-    { code: 'CAD', name: 'Canadian Dollar', country: 'Canada', flag: '🇨🇦', symbol: 'C$' },
-    { code: 'CHF', name: 'Swiss Franc', country: 'Switzerland', flag: '🇨🇭', symbol: 'Fr' },
-    { code: 'ZAR', name: 'South African Rand', country: 'South Africa', flag: '🇿🇦', symbol: 'R' },
+    { code: 'AED', name: 'UAE Dirham',          country: 'United Arab Emirates', flag: '🇦🇪', symbol: 'د.إ' },
+    { code: 'USD', name: 'US Dollar',           country: 'United States',        flag: '🇺🇸', symbol: '$'   },
+    { code: 'EUR', name: 'Euro',                country: 'European Union',        flag: '🇪🇺', symbol: '€'   },
+    { code: 'GBP', name: 'British Pound',       country: 'United Kingdom',        flag: '🇬🇧', symbol: '£'   },
+    { code: 'INR', name: 'Indian Rupee',        country: 'India',                 flag: '🇮🇳', symbol: '₹'   },
+    { code: 'SAR', name: 'Saudi Riyal',         country: 'Saudi Arabia',          flag: '🇸🇦', symbol: '﷼'   },
+    { code: 'OMR', name: 'Omani Rial',          country: 'Oman',                  flag: '🇴🇲', symbol: 'ر.ع.' },
+    { code: 'QAR', name: 'Qatari Riyal',        country: 'Qatar',                 flag: '🇶🇦', symbol: 'ر.ق' },
+    { code: 'KWD', name: 'Kuwaiti Dinar',       country: 'Kuwait',                flag: '🇰🇼', symbol: 'د.ك' },
+    { code: 'BHD', name: 'Bahraini Dinar',      country: 'Bahrain',               flag: '🇧🇭', symbol: '.د.ب' },
+    { code: 'TRY', name: 'Turkish Lira',        country: 'Turkey',                flag: '🇹🇷', symbol: '₺'   },
+    { code: 'EGP', name: 'Egyptian Pound',      country: 'Egypt',                 flag: '🇪🇬', symbol: '£'   },
+    { code: 'PKR', name: 'Pakistani Rupee',     country: 'Pakistan',              flag: '🇵🇰', symbol: '₨'   },
+    { code: 'BDT', name: 'Bangladeshi Taka',    country: 'Bangladesh',            flag: '🇧🇩', symbol: '৳'   },
+    { code: 'LKR', name: 'Sri Lankan Rupee',    country: 'Sri Lanka',             flag: '🇱🇰', symbol: 'Rs'  },
+    { code: 'NPR', name: 'Nepalese Rupee',      country: 'Nepal',                 flag: '🇳🇵', symbol: 'रु'  },
+    { code: 'PHP', name: 'Philippine Peso',     country: 'Philippines',           flag: '🇵🇭', symbol: '₱'   },
+    { code: 'IDR', name: 'Indonesian Rupiah',   country: 'Indonesia',             flag: '🇮🇩', symbol: 'Rp'  },
+    { code: 'MYR', name: 'Malaysian Ringgit',   country: 'Malaysia',              flag: '🇲🇾', symbol: 'RM'  },
+    { code: 'SGD', name: 'Singapore Dollar',    country: 'Singapore',             flag: '🇸🇬', symbol: 'S$'  },
+    { code: 'THB', name: 'Thai Baht',           country: 'Thailand',              flag: '🇹🇭', symbol: '฿'   },
+    { code: 'VND', name: 'Vietnamese Dong',     country: 'Vietnam',               flag: '🇻🇳', symbol: '₫'   },
+    { code: 'CNY', name: 'Chinese Yuan',        country: 'China',                 flag: '🇨🇳', symbol: '¥'   },
+    { code: 'JPY', name: 'Japanese Yen',        country: 'Japan',                 flag: '🇯🇵', symbol: '¥'   },
+    { code: 'KRW', name: 'South Korean Won',    country: 'South Korea',           flag: '🇰🇷', symbol: '₩'   },
+    { code: 'AUD', name: 'Australian Dollar',   country: 'Australia',             flag: '🇦🇺', symbol: 'A$'  },
+    { code: 'CAD', name: 'Canadian Dollar',     country: 'Canada',                flag: '🇨🇦', symbol: 'C$'  },
+    { code: 'CHF', name: 'Swiss Franc',         country: 'Switzerland',           flag: '🇨🇭', symbol: 'Fr'  },
+    { code: 'ZAR', name: 'South African Rand',  country: 'South Africa',          flag: '🇿🇦', symbol: 'R'   },
   ];
 
-  // Filter currencies based on search
-  const filteredCurrencies = allCurrencies.filter(currency => 
-    currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    currency.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    currency.country.toLowerCase().includes(searchTerm.toLowerCase())
+  const getCurrency = code => allCurrencies.find(c => c.code === code);
+
+  const filteredCurrencies = allCurrencies.filter(c =>
+    c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.country.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddCurrency = (currencyCode) => {
-    if (!additionalCurrencies.includes(currencyCode) && currencyCode !== primaryCurrency) {
-      setAdditionalCurrencies([...additionalCurrencies, currencyCode]);
+  const handleAddCurrency = code => {
+    if (!additionalCurrencies.includes(code) && code !== primaryCurrency) {
+      setAdditionalCurrencies(prev => [...prev, code]);
     }
   };
 
-  const handleRemoveCurrency = (currencyCode) => {
-    setAdditionalCurrencies(additionalCurrencies.filter(c => c !== currencyCode));
+  const handleRemoveCurrency = code => {
+    setAdditionalCurrencies(prev => prev.filter(c => c !== code));
   };
 
   const handleSubmit = async () => {
@@ -70,44 +76,25 @@ export default function CurrencySetup() {
     setAlert(null);
 
     try {
-      const response = await apiClient.post('/user/currencies', {
-        primary_currency: primaryCurrency,
+      const { data } = await apiClient.post('/user/currencies', {
+        primary_currency:   primaryCurrency,
         tracked_currencies: additionalCurrencies,
       });
 
-      if (response.data.success) {
-        // Update local storage with user preferences
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        userData.preferences = {
-          primary_currency: primaryCurrency,
-          tracked_currencies: additionalCurrencies,
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-
-        // Navigate to dashboard
+      if (data.success) {
         navigate('/dashboard');
       } else {
-        setAlert({
-          type: 'error',
-          message: response.data.message || 'Failed to save currency preferences',
-        });
+        setAlert({ type: 'error', message: data.message || 'Failed to save currency preferences' });
       }
     } catch (error) {
       setAlert({
-        type: 'error',
+        type:    'error',
         message: error.response?.data?.message || 'An error occurred. Please try again.',
       });
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleSkip = () => {
-    navigate('/dashboard');
-  };
-
-  // Get currency object by code
-  const getCurrency = (code) => allCurrencies.find(c => c.code === code);
 
   return (
     <div className="setup-wrap">
@@ -127,20 +114,20 @@ export default function CurrencySetup() {
         <div className="setup-content">
           <h1 className="setup-title">Choose your currencies</h1>
           <p className="setup-subtitle">
-            Select the currencies you work with. You can always add more later in settings.
+            Select the currencies you work with. You can always change these later in settings.
           </p>
 
           {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
-          {/* Primary Currency Section */}
+          {/* Primary Currency */}
           <div className="currency-section">
             <label className="currency-section__label">
               Primary Currency <span className="required">*</span>
             </label>
             <p className="currency-section__hint">
-              This will be your main currency for dashboards and reports
+              Used as the default in dashboards and reports.
             </p>
-            
+
             <div className="currency-grid">
               {['AED', 'USD', 'EUR', 'GBP', 'INR', 'SAR', 'OMR', 'QAR'].map(code => {
                 const currency = getCurrency(code);
@@ -163,31 +150,30 @@ export default function CurrencySetup() {
               })}
             </div>
 
-            <button className="btn ghost btn-full" onClick={() => document.getElementById('currency-search').scrollIntoView({ behavior: 'smooth' })}>
+            <button
+              className="btn ghost btn-full"
+              onClick={() => document.getElementById('currency-search').scrollIntoView({ behavior: 'smooth' })}
+            >
               <Icon name="search" size={16} /> View all {allCurrencies.length} currencies
             </button>
           </div>
 
-          {/* Additional Currencies Section */}
+          {/* Additional Currencies */}
           <div className="currency-section" id="currency-search">
             <label className="currency-section__label">Track additional currencies</label>
-            <p className="currency-section__hint">
-              Add currencies you frequently convert between (optional)
-            </p>
+            <p className="currency-section__hint">Add currencies you frequently convert between (optional).</p>
 
-            {/* Search Bar */}
             <div className="currency-search">
               <Icon name="search" size={18} />
               <input
                 type="text"
-                placeholder="Search by currency name, code, or country..."
+                placeholder="Search by currency name, code, or country…"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="currency-search__input"
               />
             </div>
 
-            {/* Selected Currencies Tags */}
             {additionalCurrencies.length > 0 && (
               <div className="selected-currencies">
                 <div className="selected-currencies__label">Selected:</div>
@@ -197,9 +183,7 @@ export default function CurrencySetup() {
                     return (
                       <span key={code} className="selected-currency">
                         {currency?.flag} {code}
-                        <button onClick={() => handleRemoveCurrency(code)} className="selected-currency__remove">
-                          ×
-                        </button>
+                        <button onClick={() => handleRemoveCurrency(code)} className="selected-currency__remove">×</button>
                       </span>
                     );
                   })}
@@ -207,7 +191,6 @@ export default function CurrencySetup() {
               </div>
             )}
 
-            {/* Currency List */}
             <div className="currency-list">
               {filteredCurrencies
                 .filter(c => c.code !== primaryCurrency && !additionalCurrencies.includes(c.code))
@@ -228,7 +211,7 @@ export default function CurrencySetup() {
                     </div>
                   </button>
                 ))}
-              
+
               {filteredCurrencies.length === 0 && (
                 <div className="currency-list__empty">
                   <Icon name="search" size={48} />
@@ -238,17 +221,13 @@ export default function CurrencySetup() {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="setup-actions">
-            <button className="btn ghost" onClick={handleSkip}>
+            <button className="btn ghost" onClick={() => navigate('/dashboard')}>
               Skip for now
             </button>
-            <button 
-              className="btn pri lg" 
-              onClick={handleSubmit}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Saving...' : 'Continue to dashboard'}
+            <button className="btn pri lg" onClick={handleSubmit} disabled={isLoading}>
+              {isLoading ? 'Saving…' : 'Continue to dashboard'}
             </button>
           </div>
         </div>

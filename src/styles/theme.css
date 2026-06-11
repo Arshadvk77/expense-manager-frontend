@@ -83,7 +83,20 @@ button { font-family: inherit; }
   border-radius: var(--r-xl); box-shadow: var(--sh-2);
   padding: 20px 14px; display: flex; flex-direction: column;
   position: sticky; top: 14px; height: calc(100vh - 28px);
+  overflow: hidden; /* prevent sidebar itself from scrolling */
+
 }
+.s-nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* critical — without this, flex children won't shrink */
+  padding-bottom: 4px;
+}
+
+/* Hide scrollbar visually but keep it functional */
+.s-nav-scroll::-webkit-scrollbar { width: 0; }
+.s-nav-scroll { scrollbar-width: none; }
+
 .brand { display: flex; align-items: center; gap: 11px; padding: 4px 8px 16px; }
 .brand .mk { width: 36px; height: 36px; border-radius: 12px; background: var(--wine); color:#fff; display:flex; align-items:center; justify-content:center; font-weight: 800; font-size: 18px; box-shadow: var(--sh-wine); }
 .brand .nm { font-weight: 800; font-size: 18px; letter-spacing: -0.02em; }
