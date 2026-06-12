@@ -18,6 +18,8 @@ export const API_ENDPOINTS = {
   TRANSACTIONS: {
     BASE: '/transactions',
     EXPORT: '/transactions/export',
+    IMPORT: '/transactions/import',
+    IMPORT_TEMPLATE: '/transactions/import/template',
   },
   CATEGORIES: {
     BASE: '/categories',
@@ -32,7 +34,7 @@ export const API_ENDPOINTS = {
   CONTACT: { BASE: '/contact' },
 
   RECURRING: { BASE: '/recurring' },
-  
+
   ADMIN: { CONTACT_MESSAGES: '/admin/contact-messages' },
 
 };

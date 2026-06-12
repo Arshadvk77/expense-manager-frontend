@@ -3,9 +3,9 @@ import { Topbar } from '../components/Layout.jsx';
 import { Icon } from '../components/Icon.jsx';
 import { useNavigate } from 'react-router-dom';
 import { fmt } from '../lib/currency.js';
-import { transactionsAPI } from '../api/transactions'; // 👉 adjust path
 import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
-
+import { transactionsAPI, downloadBlob } from '../api/transactions';
+import { useRef } from 'react';
 import '../styles/main.scss';
 
 const FILTERS = ['All', 'Income', 'Expense'];
@@ -31,6 +31,8 @@ export default function Transactions() {
   const [error, setError] = useState('');
   const [confirmId, setConfirmId] = useState(null);  // replaces deletingId
   const [deleting, setDeleting] = useState(false);
+  const fileRef = useRef(null);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async (p = 1) => {
     setLoading(true);
@@ -83,14 +85,55 @@ export default function Transactions() {
     );
   });
 
+
+
+  async function handleExport() {
+    try {
+      const blob = await transactionsAPI.exportFile();
+      downloadBlob(blob, `transactions-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch {
+      setError('Export failed.');
+    }
+  }
+
+   async function handleTemplate() {
+    const blob = await transactionsAPI.template();
+    downloadBlob(blob, 'transactions-template.xlsx');
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file
+    if (!file) return;
+    setImporting(true);
+    setError('');
+    try {
+      const res = await transactionsAPI.importFile(file);
+      let msg = `Imported ${res.imported}.`;
+      if (res.skipped) msg += ` Skipped ${res.skipped} — ${(res.errors || []).slice(0, 3).join('; ')}`;
+      setError(res.skipped ? msg : '');
+      load(1); // refresh the list
+    } catch (err) {
+      setError(err.message || 'Import failed.');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+
+
   return (
     <>
       <Topbar title="Transactions" sub="Every currency, in one place.">
-        <button className="btn"><Icon name="download" size={15} /> Export</button>
-        <button className="btn pri" onClick={() => navigate('/add-expense')}>
-          <Icon name="plus" size={16} /> New
+        <button className="btn" onClick={handleTemplate}>Template</button>
+        <button className="btn" onClick={() => fileRef.current?.click()} disabled={importing}>
+          <Icon name="download" size={15} /> {importing ? 'Importing…' : 'Import'}
         </button>
+        <button className="btn" onClick={handleExport}><Icon name="download" size={15} /> Export</button>
+        <button className="btn pri" onClick={() => navigate('/expense')}><Icon name="plus" size={16} /> New</button>
       </Topbar>
+      <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} style={{ display: 'none' }} />
+
 
       {/* Filter bar */}
       <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
