@@ -31,6 +31,8 @@ export const API_ENDPOINTS = {
   SAVINGS: { BASE: '/savings-plans' },
   CONTACT: { BASE: '/contact' },
 
+  RECURRING: { BASE: '/recurring' },
+  
   ADMIN: { CONTACT_MESSAGES: '/admin/contact-messages' },
 
 };

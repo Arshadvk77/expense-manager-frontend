@@ -23,6 +23,7 @@ import Terms from './pages/Terms.jsx';
 import Privacy from './pages/Privacy.jsx';
 import EditTransaction from './pages/EditTransaction.jsx';
 import AdminContactMessages from './pages/AdminContactMessages.jsx';
+import Recurring from './pages/Recurring.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -75,6 +76,7 @@ export default function App() {
 
 
         <Route path="/income" element={<AddIncome />} />
+        <Route path="/recurring" element={<Recurring />} />
         <Route path="/expense" element={<AddExpense />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/transactions/:id/edit" element={<EditTransaction />} />
