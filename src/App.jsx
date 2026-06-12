@@ -22,6 +22,7 @@ import Contact from './pages/Contact.jsx';
 import Terms from './pages/Terms.jsx';
 import Privacy from './pages/Privacy.jsx';
 import EditTransaction from './pages/EditTransaction.jsx';
+import AdminContactMessages from './pages/AdminContactMessages.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -34,6 +35,13 @@ function GuestRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return null;
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+function RequireAdmin({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user?.is_admin) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -70,7 +78,10 @@ export default function App() {
         <Route path="/expense" element={<AddExpense />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/transactions/:id/edit" element={<EditTransaction />} />
-        
+
+        {/* Admin only */}
+        <Route path="/admin/contact-messages" element={<RequireAdmin><AdminContactMessages /></RequireAdmin>} />
+
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

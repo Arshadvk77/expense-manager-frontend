@@ -5,7 +5,11 @@ import { useAuth } from '../hooks/useAuth';
 import { useState } from 'react';
 import { Toggle } from './Toggle.jsx';
 
-const ROUTE = { home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions', reports: '/reports', convert: '/convert', settings: '/settings' };
+const ROUTE = {
+  home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions',
+  reports: '/reports', convert: '/convert', settings: '/settings',
+  adminContact: '/admin/contact-messages',
+};
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -30,6 +34,13 @@ function Sidebar() {
       { id: 'settings', label: 'Settings', icon: 'gear' },
     ]},
   ];
+
+  if (user?.is_admin) {
+    groups.push({
+      label: 'Admin',
+      items: [{ id: 'adminContact', label: 'Messages', icon: 'mail' }],
+    });
+  }
   
   const on = id => pathname === ROUTE[id];
 
