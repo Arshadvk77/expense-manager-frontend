@@ -21,6 +21,7 @@ import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
 import Terms from './pages/Terms.jsx';
 import Privacy from './pages/Privacy.jsx';
+import EditTransaction from './pages/EditTransaction.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -60,12 +61,16 @@ export default function App() {
 
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/income" element={<AddIncome />} />
-        <Route path="/expense" element={<AddExpense />} />
-        <Route path="/transactions" element={<Transactions />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/convert" element={<Convert />} />
         <Route path="/settings" element={<Settings />} />
+
+
+        <Route path="/income" element={<AddIncome />} />
+        <Route path="/expense" element={<AddExpense />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/transactions/:id/edit" element={<EditTransaction />} />
+        
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

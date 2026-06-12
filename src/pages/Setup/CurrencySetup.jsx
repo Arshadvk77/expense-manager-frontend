@@ -11,8 +11,8 @@ export default function CurrencySetup() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [primaryCurrency, setPrimaryCurrency]       = useState(
-    user?.preferences?.primary_currency ?? 'AED'    // pre-fill if returning user
+  const [mainCurrency, setmainCurrency]       = useState(
+    user?.preferences?.main_currency ?? 'AED'    // pre-fill if returning user
   );
   const [additionalCurrencies, setAdditionalCurrencies] = useState(
     user?.preferences?.tracked_currencies ?? []
@@ -62,7 +62,7 @@ export default function CurrencySetup() {
   );
 
   const handleAddCurrency = code => {
-    if (!additionalCurrencies.includes(code) && code !== primaryCurrency) {
+    if (!additionalCurrencies.includes(code) && code !== mainCurrency) {
       setAdditionalCurrencies(prev => [...prev, code]);
     }
   };
@@ -77,7 +77,7 @@ export default function CurrencySetup() {
 
     try {
       const { data } = await apiClient.post('/user/currencies', {
-        primary_currency:   primaryCurrency,
+        main_currency:   mainCurrency,
         tracked_currencies: additionalCurrencies,
       });
 
@@ -134,13 +134,13 @@ export default function CurrencySetup() {
                 return (
                   <button
                     key={code}
-                    onClick={() => setPrimaryCurrency(code)}
-                    className={`currency-card ${primaryCurrency === code ? 'currency-card--active' : ''}`}
+                    onClick={() => setmainCurrency(code)}
+                    className={`currency-card ${mainCurrency === code ? 'currency-card--active' : ''}`}
                   >
                     <div className="currency-card__flag">{currency?.flag}</div>
                     <div className="currency-card__code">{code}</div>
                     <div className="currency-card__name">{currency?.name}</div>
-                    {primaryCurrency === code && (
+                    {mainCurrency === code && (
                       <div className="currency-card__check">
                         <Icon name="check" size={16} />
                       </div>
@@ -193,7 +193,7 @@ export default function CurrencySetup() {
 
             <div className="currency-list">
               {filteredCurrencies
-                .filter(c => c.code !== primaryCurrency && !additionalCurrencies.includes(c.code))
+                .filter(c => c.code !== mainCurrency && !additionalCurrencies.includes(c.code))
                 .map(currency => (
                   <button
                     key={currency.code}

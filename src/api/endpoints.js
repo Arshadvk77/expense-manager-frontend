@@ -8,16 +8,25 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: '/reset-password',
   },
   USER: {
-    PROFILE: '/profile',
-    UPDATE_PROFILE: '/profile/update',
-    CHANGE_PASSWORD: '/change-password',
+    PROFILE:     '/user/profile',
+    PASSWORD:    '/user/password',
+    PREFERENCES: '/user/preferences',
+    CURRENCIES:  '/user/currencies',
+    DELETE:      '/user',
+
   },
   TRANSACTIONS: {
     BASE: '/transactions',
     EXPORT: '/transactions/export',
   },
-  CURRENCY: {
-    RATES: '/currency/rates',
-    CONVERT: '/currency/convert',
+  CATEGORIES: {
+    BASE: '/categories',
   },
+  CURRENCY: {
+    LIST: '/currencies',
+    RATES: '/currencies/rates',
+    CONVERT: '/currencies/convert',
+  },
+  DASHBOARD: { SUMMARY: '/dashboard/summary' },
+  SAVINGS:   { BASE: '/savings-plans' },
 };
