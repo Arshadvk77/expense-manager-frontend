@@ -19,6 +19,7 @@ export const categoriesAPI = {
       throw error.response?.data || { message: 'Failed to create category' };
     }
   },
+  
 
   update: async (id, payload) => {
     try {

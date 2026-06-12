@@ -3,15 +3,11 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useApp } from './context.jsx';
 import { useAuth } from './hooks/useAuth';  // ✅ import useAuth
 import Layout from './components/Layout.jsx';
-
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import AddIncome from './pages/AddIncome.jsx';
-import AddExpense from './pages/AddExpense.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Reports from './pages/Reports.jsx';
-import Convert from './pages/Convert.jsx';
 import Settings from './pages/Settings.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import CurrencySetup from './pages/Setup/CurrencySetup.jsx';
@@ -21,9 +17,9 @@ import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
 import Terms from './pages/Terms.jsx';
 import Privacy from './pages/Privacy.jsx';
-import EditTransaction from './pages/EditTransaction.jsx';
 import AdminContactMessages from './pages/AdminContactMessages.jsx';
 import Recurring from './pages/Recurring.jsx';
+import TransactionForm from './pages/TransactionForm.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -71,15 +67,16 @@ export default function App() {
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/convert" element={<Convert />} />
         <Route path="/settings" element={<Settings />} />
 
 
-        <Route path="/income" element={<AddIncome />} />
+
         <Route path="/recurring" element={<Recurring />} />
-        <Route path="/expense" element={<AddExpense />} />
         <Route path="/transactions" element={<Transactions />} />
-        <Route path="/transactions/:id/edit" element={<EditTransaction />} />
+
+        <Route path="/income"  element={<TransactionForm defaultType="income" />} />
+        <Route path="/expense" element={<TransactionForm defaultType="expense" />} />
+        <Route path="/transactions/:id/edit" element={<TransactionForm mode="edit" />} />
 
         {/* Admin only */}
         <Route path="/admin/contact-messages" element={<RequireAdmin><AdminContactMessages /></RequireAdmin>} />

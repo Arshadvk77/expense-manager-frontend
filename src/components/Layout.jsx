@@ -7,7 +7,8 @@ import { Toggle } from './Toggle.jsx';
 
 const ROUTE = {
   home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions',
-  reports: '/reports', convert: '/convert', settings: '/settings',
+  reports: '/reports', settings: '/settings',
+  recurring: '/recurring',
   adminContact: '/admin/contact-messages',
 };
 
@@ -28,7 +29,7 @@ function Sidebar() {
     { label: 'Money', items: [
       { id: 'income', label: 'Add income', icon: 'in' },
       { id: 'expense', label: 'Add expense', icon: 'out' },
-      { id: 'convert', label: 'Convert to INR', icon: 'convert' },
+      { id: 'recurring', label: 'Recurring', icon: 'convert' },
     ]},
     { label: 'Account', items: [
       { id: 'settings', label: 'Settings', icon: 'gear' },
