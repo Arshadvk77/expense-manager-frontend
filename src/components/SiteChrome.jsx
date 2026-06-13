@@ -62,7 +62,7 @@ export function Toggle({ on, onClick }) {
 }
 
 // ── User avatar + dropdown ──────────────────────────────────────────────────
-function UserMenu({ user }) {
+export function UserMenu({ user }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -131,7 +131,7 @@ function UserMenu({ user }) {
           {/* menu items */}
           {[
             { label: 'Dashboard', action: () => { setOpen(false); navigate('/dashboard'); } },
-            { label: 'Settings',  action: () => { setOpen(false); navigate('/settings'); } },
+            { label: 'Settings', action: () => { setOpen(false); navigate('/settings'); } },
           ].map(({ label, action }) => (
             <button
               key={label}
@@ -205,10 +205,10 @@ export function SiteNav({ active, dashboard }) {
         <div className="lp-nav-cta">
           <Toggle on={dark} onClick={() => setDark(d => !d)} />
 
-          {user ? ( <>
+          {user ? (<>
             <UserMenu user={user} />
-                          <button className="btn pri" onClick={() => navigate('/dashboard')}>Dashboard</button>
-</>
+            <button className="btn pri" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          </>
           ) : (
             <>
               <button className="btn ghost lp-hide-sm" onClick={() => navigate('/login')}>Sign in</button>

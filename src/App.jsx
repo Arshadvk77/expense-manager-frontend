@@ -20,6 +20,7 @@ import Privacy from './pages/Privacy.jsx';
 import AdminContactMessages from './pages/AdminContactMessages.jsx';
 import Recurring from './pages/Recurring.jsx';
 import TransactionForm from './pages/TransactionForm.jsx';
+import AdminUsers from './pages/AdminUsers.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/transactions/:id/edit" element={<TransactionForm mode="edit" />} />
 
         {/* Admin only */}
+        <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
         <Route path="/admin/contact-messages" element={<RequireAdmin><AdminContactMessages /></RequireAdmin>} />
 
       </Route>

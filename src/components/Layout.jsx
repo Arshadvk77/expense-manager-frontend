@@ -4,11 +4,14 @@ import { useApp } from '../context.jsx';
 import { useAuth } from '../hooks/useAuth';
 import { useState } from 'react';
 import { Toggle } from './Toggle.jsx';
+import { UserMenu } from './SiteChrome.jsx';
 
 const ROUTE = {
   home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions',
   reports: '/reports', settings: '/settings',
   recurring: '/recurring',
+  adminContact: '/admin/contact-messages',
+  adminUsers: '/admin/users',
   adminContact: '/admin/contact-messages',
 };
 
@@ -24,7 +27,9 @@ function Sidebar() {
     { label: 'Overview', items: [
       { id: 'home', label: 'Dashboard', icon: 'grid' },
       { id: 'reports', label: 'Reports', icon: 'chart' },
-      { id: 'tx', label: 'Transactions', icon: 'list', tag: '48' },
+      { id: 'tx', label: 'Transactions', icon: 'list',
+        //  tag: '48' 
+        },
     ]},
     { label: 'Money', items: [
       { id: 'income', label: 'Add income', icon: 'in' },
@@ -39,7 +44,10 @@ function Sidebar() {
   if (user?.is_admin) {
     groups.push({
       label: 'Admin',
-      items: [{ id: 'adminContact', label: 'Messages', icon: 'mail' }],
+      items: [
+        { id: 'adminUsers',   label: 'Users',    icon: 'users' },
+        { id: 'adminContact', label: 'Messages', icon: 'mail' },
+      ],
     });
   }
   
@@ -89,11 +97,11 @@ function Sidebar() {
         ))}
       </div>
 
-      <div className="s-card">
+      {/* <div className="s-card">
         <div className="t">Savings goal</div>
         <div className="d">62% to your ₹5.8L target this quarter.</div>
         <button className="b" onClick={() => navigate('/reports')}>View progress</button>
-      </div>
+      </div> */}
 
       <div className="s-user">
         <div className="av">{userInitial}</div>
@@ -193,6 +201,7 @@ export const usePage = () => useOutletContext();
 export function Topbar({ title, sub, children }) {
   const navigate = useNavigate();
   const { dark, setDark } = usePage();
+  const { user } = useAuth();
 
   return (
     <header className="topbar">
@@ -203,14 +212,11 @@ export function Topbar({ title, sub, children }) {
       <div className="tb-right">
         <Toggle on={dark} onClick={() => setDark(d => !d)} />
         {children}
-        <button className="icon-btn tb-hide-sm" onClick={() => navigate('/convert')}>
-          <Icon name="mail" size={17} />
-        </button>
         <button className="icon-btn tb-hide-sm">
           <span className="dot" />
           <Icon name="bell" size={17} />
         </button>
-        <div className="ava tb-hide-sm">R</div>
+        <UserMenu user={user} />
       </div>
     </header>
   );

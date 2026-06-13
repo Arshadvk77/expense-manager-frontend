@@ -35,6 +35,10 @@ export const API_ENDPOINTS = {
 
   RECURRING: { BASE: '/recurring' },
 
-  ADMIN: { CONTACT_MESSAGES: '/admin/contact-messages' },
+  ADMIN: {
+    CONTACT_MESSAGES: '/admin/contact-messages',
+    STATS: '/admin/stats',
+    USERS: '/admin/users',
+  },
 
 };
