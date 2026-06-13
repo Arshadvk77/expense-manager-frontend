@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { Toggle } from '../components/Toggle.jsx';
 import { userAPI } from '../api/user';
-
-const CURRENCIES = ['OMR', 'AED', 'SAR', 'QAR', 'USD', 'INR'];
+import { useCurrencies } from '../hooks/useCurrencies.js';
 
 export default function Settings() {
   const { ccy, dark, setDark, setCcy } = usePage();
@@ -14,11 +13,12 @@ export default function Settings() {
   const { user, updateUser, logout } = useAuth();
 
   const [alert, setAlert] = useState(null);
+  const { currencies } = useCurrencies();
 
   // ----- profile edit -----
-  const [editing, setEditing]   = useState(false);
-  const [name, setName]         = useState(user?.name || '');
-  const [email, setEmail]       = useState(user?.email || '');
+  const [editing, setEditing] = useState(false);
+  const [name, setName]       = useState(user?.name || '');
+  const [email, setEmail]     = useState(user?.email || '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileErr, setProfileErr] = useState({});
 
@@ -74,25 +74,62 @@ export default function Settings() {
     try {
       await userAPI.updatePreferences({ [key]: next });
     } catch (err) {
-      setPrefs((p) => ({ ...p, [key]: !next })); // revert
+      setPrefs((p) => ({ ...p, [key]: !next }));
       if (key === 'dark_mode') setDark?.(() => !next);
       setAlert({ type: 'error', message: err.message || 'Could not save preference.' });
     }
   }
 
-  // ----- currency -----
+  // ----- currency (primary + tracked) -----
   const [mainCcy, setMainCcy] = useState(user?.preferences?.main_currency || ccy || 'OMR');
+  const FALLBACK_TRACKED = [ 'USD'];
+  const savedTracked = user?.preferences?.tracked_currencies?.length
+    ? user.preferences.tracked_currencies
+    : FALLBACK_TRACKED;
+
+  const [trackedDraft, setTrackedDraft] = useState(savedTracked);
+  const [savingTracked, setSavingTracked] = useState(false);
+  const [trackedSearch, setTrackedSearch] = useState('');
+
+  const trackedList = trackedDraft.map((code) => currencies.find((c) => c.code === code)).filter(Boolean);
 
   async function changeCurrency(c) {
     const prev = mainCcy;
     setMainCcy(c); setCcy?.(c);
+    // make sure the new primary is in the tracked list
+    const tracked = trackedDraft.includes(c) ? trackedDraft : [...trackedDraft, c];
+    setTrackedDraft(tracked);
     try {
-      await userAPI.updateCurrencies({ main_currency: c, tracked_currencies: user?.preferences?.tracked_currencies || [] });
+      const res = await userAPI.updateCurrencies({ main_currency: c, tracked_currencies: tracked });
+      updateUser({ ...user, preferences: { ...(user?.preferences || {}), main_currency: c, tracked_currencies: tracked } });
     } catch (err) {
       setMainCcy(prev); setCcy?.(prev);
       setAlert({ type: 'error', message: err.message || 'Could not update currency.' });
     }
   }
+
+  function toggleTracked(code) {
+    setTrackedDraft((prev) => {
+      if (code === mainCcy) return prev; // can't remove the primary
+      if (prev.includes(code)) return prev.length > 1 ? prev.filter((c) => c !== code) : prev;
+      return [...prev, code];
+    });
+  }
+
+  async function saveTracked() {
+    setSavingTracked(true); setAlert(null);
+    try {
+      await userAPI.updateCurrencies({ main_currency: mainCcy, tracked_currencies: trackedDraft });
+      updateUser({ ...user, preferences: { ...(user?.preferences || {}), main_currency: mainCcy, tracked_currencies: trackedDraft } });
+      setAlert({ type: 'success', message: 'Tracked currencies saved.' });
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || 'Could not save.' });
+    } finally {
+      setSavingTracked(false);
+    }
+  }
+
+  const trackedDirty = JSON.stringify([...trackedDraft].sort()) !== JSON.stringify([...savedTracked].sort());
 
   // ----- delete account -----
   const [showDelete, setShowDelete] = useState(false);
@@ -187,15 +224,98 @@ export default function Settings() {
             </div>
           )}
 
+          {/* Primary currency — chips from tracked, "other" dropdown for any */}
           <Row
             title="Primary currency"
             sub="Shown across dashboards and reports"
-            control={<div className="seg">{CURRENCIES.map((c) => <button key={c} className={mainCcy === c ? 'on' : ''} onClick={() => changeCurrency(c)}>{c}</button>)}</div>}
+            control={
+              <div className="row center" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <div className="seg">
+                  {trackedDraft.map((code) => (
+                    <button key={code} className={mainCcy === code ? 'on' : ''} onClick={() => changeCurrency(code)}>{code}</button>
+                  ))}
+                </div>
+                <select
+                  className="input"
+                  style={{ width: 'auto', padding: '6px 10px', fontSize: 12 }}
+                  value={trackedDraft.includes(mainCcy) ? '' : mainCcy}
+                  onChange={(e) => e.target.value && changeCurrency(e.target.value)}
+                >
+                  <option value="">Other…</option>
+                  {currencies.filter((c) => !trackedDraft.includes(c.code)).map((c) => (
+                    <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                  ))}
+                </select>
+              </div>
+            }
           />
+
+          {/* Tracked currencies editor */}
+          <Row
+            title="Tracked currencies"
+            sub={`${trackedDraft.length} selected · shown as quick chips`}
+            control={trackedDirty ? (
+              <button className="btn pri" onClick={saveTracked} disabled={savingTracked}>
+                {savingTracked ? 'Saving…' : 'Save'}
+              </button>
+            ) : null}
+          />
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+            {trackedDraft.map((code) => {
+              const meta = currencies.find((x) => x.code === code);
+              const isMain = code === mainCcy;
+              return (
+                <span
+                  key={code}
+                  className={`chip ${isMain ? 'wine' : ''}`}
+                  onClick={() => !isMain && toggleTracked(code)}
+                  title={isMain ? 'Primary currency — cannot remove' : 'Click to remove'}
+                  style={{ cursor: isMain ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <span className="mono">{code}</span>
+                  {meta?.name && <span className="muted text-small">· {meta.name}</span>}
+                  {!isMain && <span style={{ fontSize: 14, lineHeight: 1, marginLeft: 2 }}>×</span>}
+                </span>
+              );
+            })}
+          </div>
+
+          <div style={{ position: 'relative', marginTop: 10 }}>
+            <input
+              className="input"
+              placeholder="Search to add a currency (code or name)"
+              value={trackedSearch}
+              onChange={(e) => setTrackedSearch(e.target.value)}
+            />
+            {trackedSearch.trim() && (
+              <div className="card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, maxHeight: 240, overflow: 'auto', zIndex: 10, padding: 4 }}>
+                {currencies
+                  .filter((c) => {
+                    if (trackedDraft.includes(c.code)) return false;
+                    const q = trackedSearch.toLowerCase();
+                    return c.code.toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q);
+                  })
+                  .slice(0, 50)
+                  .map((c) => (
+                    <div
+                      key={c.code}
+                      onClick={() => { toggleTracked(c.code); setTrackedSearch(''); }}
+                      style={{ padding: '8px 10px', cursor: 'pointer', borderRadius: 8, fontSize: 13 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--line)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span className="mono" style={{ fontWeight: 700 }}>{c.code}</span>
+                      <span className="muted text-small" style={{ marginLeft: 8 }}>{c.name}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
         </Section>
 
         {/* Appearance + notifications */}
-        <Section label="Preferences" title="How Khaleej behaves">
+        <Section label="Preferences" title="How the app behaves">
           <Row title="Dark mode" sub="A calmer evening palette" control={<Toggle on={prefs.dark_mode} onClick={() => toggle('dark_mode')} />} />
           <Row title="Compact numbers" sub="Abbreviate large amounts (1.2k)" control={<Toggle on={prefs.compact_numbers} onClick={() => toggle('compact_numbers')} />} />
           <Row title="Notifications" sub="Salary, goals, and weekly digest" control={<Toggle on={prefs.notifications_enabled} onClick={() => toggle('notifications_enabled')} />} />

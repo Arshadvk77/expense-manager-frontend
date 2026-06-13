@@ -10,7 +10,6 @@ const ROUTE = {
   home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions',
   reports: '/reports', settings: '/settings',
   recurring: '/recurring',
-  adminContact: '/admin/contact-messages',
   adminUsers: '/admin/users',
   adminContact: '/admin/contact-messages',
 };
