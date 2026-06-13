@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
     CONVERT: '/currencies/convert',
   },
   DASHBOARD: { SUMMARY: '/dashboard/summary' },
+  REPORTS: { SUMMARY: '/reports/summary' },
   SAVINGS: { BASE: '/savings-plans' },
   CONTACT: { BASE: '/contact' },
 
