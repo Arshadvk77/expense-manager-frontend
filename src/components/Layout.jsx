@@ -76,10 +76,6 @@ function Sidebar() {
         </div>
       </Link>
 
-      <div className="s-search">
-        <Icon name="search" size={15} />
-        <input placeholder="Search" />
-      </div>
 
       <div className="s-nav-scroll">
         {groups.map(g => (
