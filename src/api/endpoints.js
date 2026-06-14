@@ -31,7 +31,7 @@ export const API_ENDPOINTS = {
   },
   DASHBOARD: { SUMMARY: '/dashboard/summary' },
   REPORTS: { SUMMARY: '/reports/summary' },
-  SAVINGS: { BASE: '/savings-plans' },
+  SAVINGS: { BASE: '/savings-plans', SUGGESTED: '/savings-plans/suggested' },
   CONTACT: { BASE: '/contact' },
 
   RECURRING: { BASE: '/recurring' },

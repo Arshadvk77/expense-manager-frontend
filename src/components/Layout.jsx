@@ -11,6 +11,7 @@ const ROUTE = {
   reports: '/reports', settings: '/settings',
   recurring: '/recurring',
   splits: '/splits',
+  savings: '/savings' ,
   adminUsers: '/admin/users',
   adminContact: '/admin/contact-messages',
 };
@@ -30,6 +31,7 @@ function Sidebar() {
       { id: 'tx', label: 'Transactions', icon: 'list',
         //  tag: '48' 
         },
+        { id: 'savings', label: 'Savings goals', icon: 'target' }
     ]},
     { label: 'Money', items: [
       { id: 'income', label: 'Add income', icon: 'in' },
