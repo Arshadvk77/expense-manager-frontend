@@ -81,8 +81,11 @@ export default function Settings() {
   }
 
   // ----- currency (primary + tracked) -----
-  const [mainCcy, setMainCcy] = useState(user?.preferences?.main_currency || ccy || 'OMR');
-  const FALLBACK_TRACKED = [ 'USD'];
+  // main_currency is locked once set — read only here
+  const mainCcy = user?.preferences?.main_currency || 'USD';
+  const mainMeta = currencies.find((c) => c.code === mainCcy);
+
+  const FALLBACK_TRACKED = [mainCcy];
   const savedTracked = user?.preferences?.tracked_currencies?.length
     ? user.preferences.tracked_currencies
     : FALLBACK_TRACKED;
@@ -91,36 +94,19 @@ export default function Settings() {
   const [savingTracked, setSavingTracked] = useState(false);
   const [trackedSearch, setTrackedSearch] = useState('');
 
-  const trackedList = trackedDraft.map((code) => currencies.find((c) => c.code === code)).filter(Boolean);
-
-  async function changeCurrency(c) {
-    const prev = mainCcy;
-    setMainCcy(c); setCcy?.(c);
-    // make sure the new primary is in the tracked list
-    const tracked = trackedDraft.includes(c) ? trackedDraft : [...trackedDraft, c];
-    setTrackedDraft(tracked);
-    try {
-      const res = await userAPI.updateCurrencies({ main_currency: c, tracked_currencies: tracked });
-      updateUser({ ...user, preferences: { ...(user?.preferences || {}), main_currency: c, tracked_currencies: tracked } });
-    } catch (err) {
-      setMainCcy(prev); setCcy?.(prev);
-      setAlert({ type: 'error', message: err.message || 'Could not update currency.' });
-    }
-  }
-
   function toggleTracked(code) {
     setTrackedDraft((prev) => {
-      if (code === mainCcy) return prev; // can't remove the primary
+      if (code === mainCcy) return prev; // can't remove the home currency
       if (prev.includes(code)) return prev.length > 1 ? prev.filter((c) => c !== code) : prev;
       return [...prev, code];
     });
   }
 
-  async function saveTracked() {
+   async function saveTracked() {
     setSavingTracked(true); setAlert(null);
     try {
-      await userAPI.updateCurrencies({ main_currency: mainCcy, tracked_currencies: trackedDraft });
-      updateUser({ ...user, preferences: { ...(user?.preferences || {}), main_currency: mainCcy, tracked_currencies: trackedDraft } });
+      await userAPI.updateCurrencies({ tracked_currencies: trackedDraft });
+      updateUser({ ...user, preferences: { ...(user?.preferences || {}), tracked_currencies: trackedDraft } });
       setAlert({ type: 'success', message: 'Tracked currencies saved.' });
     } catch (err) {
       setAlert({ type: 'error', message: err.message || 'Could not save.' });
@@ -225,32 +211,18 @@ export default function Settings() {
           )}
 
           {/* Primary currency — chips from tracked, "other" dropdown for any */}
-          <Row
-            title="Primary currency"
-            sub="Shown across dashboards and reports"
+            <Row
+            title="Home currency"
+            sub="Your account base — set once, locked to keep history accurate"
             control={
-              <div className="row center" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                <div className="seg">
-                  {trackedDraft.map((code) => (
-                    <button key={code} className={mainCcy === code ? 'on' : ''} onClick={() => changeCurrency(code)}>{code}</button>
-                  ))}
-                </div>
-                <select
-                  className="input"
-                  style={{ width: 'auto', padding: '6px 10px', fontSize: 12 }}
-                  value={trackedDraft.includes(mainCcy) ? '' : mainCcy}
-                  onChange={(e) => e.target.value && changeCurrency(e.target.value)}
-                >
-                  <option value="">Other…</option>
-                  {currencies.filter((c) => !trackedDraft.includes(c.code)).map((c) => (
-                    <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-                  ))}
-                </select>
-              </div>
+              <span className="chip wine" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="check" size={12} />
+                <span className="mono">{mainCcy}</span>
+                {mainMeta?.name && <span style={{ opacity: 0.85 }}>· {mainMeta.name}</span>}
+              </span>
             }
           />
-
-          {/* Tracked currencies editor */}
+ {/* Tracked currencies editor */}
           <Row
             title="Tracked currencies"
             sub={`${trackedDraft.length} selected · shown as quick chips`}
@@ -270,7 +242,7 @@ export default function Settings() {
                   key={code}
                   className={`chip ${isMain ? 'wine' : ''}`}
                   onClick={() => !isMain && toggleTracked(code)}
-                  title={isMain ? 'Primary currency — cannot remove' : 'Click to remove'}
+                  title={isMain ? 'Home currency — cannot remove' : 'Click to remove'}
                   style={{ cursor: isMain ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   <span className="mono">{code}</span>
@@ -312,6 +284,7 @@ export default function Settings() {
               </div>
             )}
           </div>
+          
         </Section>
 
         {/* Appearance + notifications */}
