@@ -10,6 +10,7 @@ const ROUTE = {
   home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions',
   reports: '/reports', settings: '/settings',
   recurring: '/recurring',
+  splits: '/splits',
   adminUsers: '/admin/users',
   adminContact: '/admin/contact-messages',
 };
@@ -33,6 +34,7 @@ function Sidebar() {
     { label: 'Money', items: [
       { id: 'income', label: 'Add income', icon: 'in' },
       { id: 'expense', label: 'Add expense', icon: 'out' },
+      { id: 'splits', label: 'Split expense', icon: 'out' },
       { id: 'recurring', label: 'Recurring', icon: 'convert' },
     ]},
     { label: 'Account', items: [

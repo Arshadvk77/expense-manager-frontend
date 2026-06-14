@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
   CONTACT: { BASE: '/contact' },
 
   RECURRING: { BASE: '/recurring' },
+  SPLITS: { BASE: '/splits', SEARCH_USERS: '/splits/search-users' },
 
   ADMIN: {
     CONTACT_MESSAGES: '/admin/contact-messages',

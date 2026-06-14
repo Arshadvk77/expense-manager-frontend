@@ -21,6 +21,7 @@ import AdminContactMessages from './pages/AdminContactMessages.jsx';
 import Recurring from './pages/Recurring.jsx';
 import TransactionForm from './pages/TransactionForm.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
+import Splits from './pages/Splits.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -74,6 +75,8 @@ export default function App() {
 
         <Route path="/recurring" element={<Recurring />} />
         <Route path="/transactions" element={<Transactions />} />
+         <Route path="/splits" element={<Splits />} />
+
 
         <Route path="/income"  element={<TransactionForm defaultType="income" />} />
         <Route path="/expense" element={<TransactionForm defaultType="expense" />} />
