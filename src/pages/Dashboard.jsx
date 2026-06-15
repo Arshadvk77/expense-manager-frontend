@@ -7,6 +7,8 @@ import { SYMBOL, fmt } from '../lib/currency.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { SavingsPlans } from '../components/SavingsPlans.jsx';
 import { dashboardAPI } from '../api/dashboard';
+import { splitsAPI } from '../api/splits';
+
 
 const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch { return d; } };
 
@@ -14,9 +16,10 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [data, setData]       = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
+  const [splitSummary, setSplitSummary] = useState(null);
 
   useEffect(() => {
     dashboardAPI.summary()
@@ -25,22 +28,28 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    splitsAPI.list()
+      .then((res) => setSplitSummary(res.summary))
+      .catch(() => { }); // silent — teaser just won't show if it fails
+  }, []);
+
   const main = data?.main_currency || 'OMR';
-  const sym  = SYMBOL[main] || main;
-  const t     = data?.totals || { income: 0, expense: 0, saved: 0 };
+  const sym = SYMBOL[main] || main;
+  const t = data?.totals || { income: 0, expense: 0, saved: 0 };
   const trend = data?.trend || [];
   const labels = trend.map((m) => m.label);
   const topCat = data?.by_category?.[0] || null;
 
   const stats = [
-    { ic: 'green', icon: 'in',     lbl: 'Income',  val: t.income,  spark: trend.map((m) => m.income),  color: 'var(--green)' },
-    { ic: 'clay',  icon: 'out',    lbl: 'Spent',   val: t.expense, spark: trend.map((m) => m.expense), color: 'var(--clay)' },
-    { ic: 'wine',  icon: 'wallet', lbl: 'Saved',   val: t.saved,   spark: trend.map((m) => m.net),     color: 'var(--wine)' },
-    { ic: 'gold',  icon: 'send',   lbl: topCat ? `Top: ${topCat.name}` : 'Top category', val: topCat?.total || 0, spark: trend.map((m) => m.net), color: 'var(--gold)' },
+    { ic: 'green', icon: 'in', lbl: 'Income', val: t.income, spark: trend.map((m) => m.income), color: 'var(--green)' },
+    { ic: 'clay', icon: 'out', lbl: 'Spent', val: t.expense, spark: trend.map((m) => m.expense), color: 'var(--clay)' },
+    { ic: 'wine', icon: 'wallet', lbl: 'Saved', val: t.saved, spark: trend.map((m) => m.net), color: 'var(--wine)' },
+    { ic: 'gold', icon: 'send', lbl: topCat ? `Top: ${topCat.name}` : 'Top category', val: topCat?.total || 0, spark: trend.map((m) => m.net), color: 'var(--gold)' },
   ];
 
   const split = (data?.by_category || []).map((c) => ({ name: c.name, v: c.total, color: c.color || 'var(--wine)' }));
-  const nets  = trend.map((m) => m.net);
+  const nets = trend.map((m) => m.net);
 
   return (
     <>
@@ -68,6 +77,16 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+
+          {splitSummary?.owed_to_me > 0 && (
+            <div className="card pad-lg row between center">
+              <div>
+                <div className="muted text-small">People owe you</div>
+                <div className="num" style={{ fontSize: 20, fontWeight: 800, color: 'var(--green)' }}>{fmt(splitSummary.owed_to_me)}</div>
+              </div>
+              <button className="btn ghost" onClick={() => navigate('/splits')}>View splits <Icon name="right" size={14} /></button>
+            </div>
+          )}
 
           {/* Chart + donut */}
           <div className="grid cols-main" style={{ gridTemplateColumns: '1.55fr 1fr', gap: 16 }}>

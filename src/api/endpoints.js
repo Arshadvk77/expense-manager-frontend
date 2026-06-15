@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
   SPLITS: { BASE: '/splits', SEARCH_USERS: '/splits/search-users' },
 
   ADMIN: {
+    DASHBOARD: '/admin/dashboard',
     CONTACT_MESSAGES: '/admin/contact-messages',
     STATS: '/admin/stats',
     USERS: '/admin/users',

@@ -11,7 +11,8 @@ const ROUTE = {
   reports: '/reports', settings: '/settings',
   recurring: '/recurring',
   splits: '/splits',
-  savings: '/savings' ,
+  savings: '/savings',
+  adminHome : '/admin' ,
   adminUsers: '/admin/users',
   adminContact: '/admin/contact-messages',
 };
@@ -25,40 +26,48 @@ function Sidebar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const groups = [
-    { label: 'Overview', items: [
-      { id: 'home', label: 'Dashboard', icon: 'grid' },
-      { id: 'reports', label: 'Reports', icon: 'chart' },
-      { id: 'tx', label: 'Transactions', icon: 'list',
-        //  tag: '48' 
+    {
+      label: 'Overview', items: [
+        { id: 'home', label: 'Dashboard', icon: 'grid' },
+        { id: 'reports', label: 'Reports', icon: 'chart' },
+        {
+          id: 'tx', label: 'Transactions', icon: 'list',
+          //  tag: '48' 
         },
         { id: 'savings', label: 'Savings goals', icon: 'target' }
-    ]},
-    { label: 'Money', items: [
-      { id: 'income', label: 'Add income', icon: 'in' },
-      { id: 'expense', label: 'Add expense', icon: 'out' },
-      { id: 'splits', label: 'Split expense', icon: 'out' },
-      { id: 'recurring', label: 'Recurring', icon: 'convert' },
-    ]},
-    { label: 'Account', items: [
-      { id: 'settings', label: 'Settings', icon: 'gear' },
-    ]},
+      ]
+    },
+    {
+      label: 'Money', items: [
+        { id: 'income', label: 'Add income', icon: 'in' },
+        { id: 'expense', label: 'Add expense', icon: 'out' },
+        { id: 'splits', label: 'Split expense', icon: 'share' },
+        { id: 'recurring', label: 'Recurring', icon: 'convert' },
+      ]
+    },
+    {
+      label: 'Account', items: [
+        { id: 'settings', label: 'Settings', icon: 'gear' },
+      ]
+    },
   ];
 
   if (user?.is_admin) {
     groups.push({
       label: 'Admin',
       items: [
-        { id: 'adminUsers',   label: 'Users',    icon: 'users' },
+        { id: 'adminHome', label: 'Overview', icon: 'grid' },
+        { id: 'adminUsers', label: 'Users', icon: 'users' },
         { id: 'adminContact', label: 'Messages', icon: 'mail' },
       ],
     });
   }
-  
+
   const on = id => pathname === ROUTE[id];
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
-    
+
     setIsLoggingOut(true);
     try {
       await logout();
@@ -73,7 +82,7 @@ function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <Link to="/">  
+      <Link to="/">
         <div className="brand">
           <div className="mk">K</div>
           <div className="nm">Khaleej<small>Gulf · India</small></div>
@@ -108,11 +117,11 @@ function Sidebar() {
           <div className="nm">{user?.name || 'Rashid Ahmed'}</div>
           <div className="sub">Dubai · {ccy}</div>
         </div>
-        <button 
-          onClick={handleLogout} 
+        <button
+          onClick={handleLogout}
           disabled={isLoggingOut}
-          style={{ 
-            color: 'var(--muted)', 
+          style={{
+            color: 'var(--muted)',
             cursor: isLoggingOut ? 'not-allowed' : 'pointer',
             background: 'none',
             border: 'none',
@@ -152,7 +161,7 @@ function BottomNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const on = id => pathname === ROUTE[id];
-  
+
   return (
     <nav className="bottom-nav">
       <button className={'bn-item ' + (on('home') ? 'on' : '')} onClick={() => navigate(ROUTE.home)}>
