@@ -1146,6 +1146,7 @@ button {
     flex: 0 0 auto !important;
     border-radius: 0 !important;
     padding: 30px 24px 34px !important;
+    display: none;
   }
 }
 
@@ -1241,7 +1242,7 @@ button {
 @media (max-width: 920px) {
   .auth-form {
     padding: 30px 22px 44px !important;
-    align-items: flex-start !important;
+    align-items: center !important;
   }
 }
 
@@ -1901,4 +1902,31 @@ button {
 
 .stats-row__value--positive {
   color: var(--green);
+}
+
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-input {
+    width: 100%;
+    padding-right: 44px; 
+  }
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted, #888);
+  transition: color 0.15s;
+
+  &:hover { color: var(--wine, #6B1A2E); }
 }
