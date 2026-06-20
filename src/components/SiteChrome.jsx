@@ -211,8 +211,8 @@ export function SiteNav({ active, dashboard }) {
           </>
           ) : (
             <>
-              <button className="btn ghost lp-hide-sm" onClick={() => navigate('/login')}>Sign in</button>
-              <button className="btn pri" onClick={() => navigate('/register')}>Get started</button>
+              <button className="btn ghost" onClick={() => navigate('/login')}>Sign in</button>
+              <button className="btn pri lp-hide-sm" onClick={() => navigate('/register')}>Get started</button>
             </>
           )}
         </div>

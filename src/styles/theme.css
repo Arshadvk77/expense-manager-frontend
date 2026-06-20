@@ -457,7 +457,7 @@ button {
 
 .btn.ghost {
   border-color: transparent;
-  background: transparent;
+  /* background: transparent; */
   color: var(--ink-2);
 }
 
