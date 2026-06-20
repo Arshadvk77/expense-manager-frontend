@@ -13,6 +13,8 @@ export const API_ENDPOINTS = {
     PREFERENCES: '/user/preferences',
     CURRENCIES: '/user/currencies',
     DELETE: '/user',
+    DISPLAY_CURRENCY: '/user/display-currency',
+    DISPLAY_VALUE: '/user/display-value',
 
   },
   TRANSACTIONS: {

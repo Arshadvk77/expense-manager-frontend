@@ -198,7 +198,7 @@ export default function Transactions() {
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-                      {t.main_currency} {fmt(Number(t.main_amount))}
+                      {t.main_currency}  {t.main_amount}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>

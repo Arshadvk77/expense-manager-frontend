@@ -6,9 +6,17 @@ export const SYMBOL = { AED: 'AED', OMR: 'OMR', SAR: 'SAR', QAR: 'QAR' };
 export const toINR = (amt, ccy) => amt * (RATES[ccy] || 1);
 
 // Grouped thousands, optional decimals
-export const fmt = (n, dec = 0) => {
+export const fmt2 = (n, dec = 0) => {
   const s = Math.abs(n).toFixed(dec);
   const [whole, frac] = s.split('.');
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return (n < 0 ? '-' : '') + grouped + (frac ? '.' + frac : '');
+};
+
+export const fmt = (n, dec = 2) => {
+  const num = Number(n) || 0;
+  const s = Math.abs(num).toFixed(dec);
+  const [whole, frac] = s.split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (num < 0 ? '-' : '') + grouped + (frac ? '.' + frac : '');
 };

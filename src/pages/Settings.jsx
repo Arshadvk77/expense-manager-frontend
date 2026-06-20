@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePage, Topbar } from '../components/Layout.jsx';
 import { Icon } from '../components/Icon.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -17,10 +17,20 @@ export default function Settings() {
 
   // ----- profile edit -----
   const [editing, setEditing] = useState(false);
-  const [name, setName]       = useState(user?.name || '');
-  const [email, setEmail]     = useState(user?.email || '');
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileErr, setProfileErr] = useState({});
+
+  // Re-sync currency state once `user` (and its preferences) actually loads.
+  useEffect(() => {
+    if (!user?.preferences) return;
+    const p = user.preferences;
+    const tracked = p.tracked_currencies?.length ? p.tracked_currencies : [p.main_currency].filter(Boolean);
+    setTrackedDraft(tracked);
+    setDisplayCcy(p.display_currency || p.main_currency || '');
+    setShowHomeValue(p.show_home_value ?? true);
+  }, [user?.preferences]);
 
   async function saveProfile() {
     setSavingProfile(true); setAlert(null); setProfileErr({});
@@ -62,9 +72,9 @@ export default function Settings() {
 
   // ----- preferences (optimistic + persisted) -----
   const [prefs, setPrefs] = useState({
-    dark_mode:             user?.preferences?.dark_mode ?? !!dark,
+    dark_mode: user?.preferences?.dark_mode ?? !!dark,
     notifications_enabled: user?.preferences?.notifications_enabled ?? true,
-    compact_numbers:       user?.preferences?.compact_numbers ?? false,
+    compact_numbers: user?.preferences?.compact_numbers ?? false,
   });
 
   async function toggle(key) {
@@ -80,9 +90,8 @@ export default function Settings() {
     }
   }
 
-  // ----- currency (primary + tracked) -----
-  // main_currency is locked once set — read only here
-  const mainCcy = user?.preferences?.main_currency || 'USD';
+  // ----- currencies: home (locked), display (editable), quick (chips) -----
+  const mainCcy = user?.preferences?.main_currency;
   const mainMeta = currencies.find((c) => c.code === mainCcy);
 
   const FALLBACK_TRACKED = [mainCcy];
@@ -102,12 +111,12 @@ export default function Settings() {
     });
   }
 
-   async function saveTracked() {
+  async function saveTracked() {
     setSavingTracked(true); setAlert(null);
     try {
       await userAPI.updateCurrencies({ tracked_currencies: trackedDraft });
       updateUser({ ...user, preferences: { ...(user?.preferences || {}), tracked_currencies: trackedDraft } });
-      setAlert({ type: 'success', message: 'Tracked currencies saved.' });
+      setAlert({ type: 'success', message: 'Quick currencies saved.' });
     } catch (err) {
       setAlert({ type: 'error', message: err.message || 'Could not save.' });
     } finally {
@@ -116,6 +125,34 @@ export default function Settings() {
   }
 
   const trackedDirty = JSON.stringify([...trackedDraft].sort()) !== JSON.stringify([...savedTracked].sort());
+
+  // ----- display currency (editable) + home-value toggle -----
+  const [displayCcy, setDisplayCcy] = useState(user?.preferences?.display_currency || mainCcy);
+  const [showHomeValue, setShowHomeValue] = useState(user?.preferences?.show_home_value ?? true);
+
+  async function changeDisplay(code) {
+    const prev = displayCcy;
+    setDisplayCcy(code);
+    try {
+      await userAPI.updateDisplayCurrency({ display_currency: code, show_home_value: showHomeValue });
+      updateUser({ ...user, preferences: { ...(user?.preferences || {}), display_currency: code } });
+    } catch (err) {
+      setDisplayCcy(prev);
+      setAlert({ type: 'error', message: err.message || 'Could not update display currency.' });
+    }
+  }
+
+  async function toggleHomeValue() {
+    const next = !showHomeValue;
+    setShowHomeValue(next);
+    try {
+      await userAPI.updateDisplayCurrency({ display_currency: displayCcy, show_home_value: next });
+      updateUser({ ...user, preferences: { ...(user?.preferences || {}), show_home_value: next } });
+    } catch (err) {
+      setShowHomeValue(!next);
+      setAlert({ type: 'error', message: err.message || 'Could not update.' });
+    }
+  }
 
   // ----- delete account -----
   const [showDelete, setShowDelete] = useState(false);
@@ -210,22 +247,51 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Primary currency — chips from tracked, "other" dropdown for any */}
-            <Row
+          {/* Home currency — set once, locked */}
+          <Row
             title="Home currency"
-            sub="Your account base — set once, locked to keep history accurate"
+            sub="Your base — set once, can't change. Keeps history accurate."
             control={
               <span className="chip wine" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="check" size={12} />
+                <Icon name="lock" size={12} />
                 <span className="mono">{mainCcy}</span>
                 {mainMeta?.name && <span style={{ opacity: 0.85 }}>· {mainMeta.name}</span>}
               </span>
             }
           />
- {/* Tracked currencies editor */}
+
+          {/* Display currency — editable */}
           <Row
-            title="Tracked currencies"
-            sub={`${trackedDraft.length} selected · shown as quick chips`}
+            title="Show amounts in"
+            sub="Totals on your dashboard use this. Change it when you move countries."
+            control={
+              <select
+                className="input"
+                style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}
+                value={displayCcy}
+                onChange={(e) => changeDisplay(e.target.value)}
+              >
+                {trackedDraft.map((code) => <option key={code} value={code}>{code}</option>)}
+                {currencies.filter((c) => !trackedDraft.includes(c.code)).map((c) => (
+                  <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                ))}
+              </select>
+            }
+          />
+
+          {/* Show home value toggle — only when display ≠ home */}
+          {displayCcy !== mainCcy && (
+            <Row
+              title={`Also show value in ${mainCcy}`}
+              sub="Display a second line in your home currency under totals."
+              control={<Toggle on={showHomeValue} onClick={toggleHomeValue} />}
+            />
+          )}
+
+          {/* Quick currencies */}
+          <Row
+            title="Quick currencies"
+            sub={`${trackedDraft.length} selected · shortcuts when adding a transaction`}
             control={trackedDirty ? (
               <button className="btn pri" onClick={saveTracked} disabled={savingTracked}>
                 {savingTracked ? 'Saving…' : 'Save'}
@@ -284,7 +350,6 @@ export default function Settings() {
               </div>
             )}
           </div>
-          
         </Section>
 
         {/* Appearance + notifications */}
