@@ -46,6 +46,14 @@ function RequireAdmin({ children }) {
   return children;
 }
 
+function RequireSetup({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null; // wait for auth to resolve before deciding
+  if (!user) return <Navigate to="/" replace />;
+  if (!user.preferences?.main_currency) return <Navigate to="/setup/currency" replace />;
+  return children;
+}
+
 export default function App() {
   const { dark } = useApp();
 
@@ -56,32 +64,27 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Landing/>} />
+      <Route path="/" element={<Landing />} />
       <Route path="/pricing" element={<Pricing />} />
-       <Route path="/about" element={<About />} />
-       <Route path="/contact" element={<Contact />} /> 
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-      <Route path="/forgot" element={<GuestRoute><ForgotPassword /></GuestRoute>} /> 
+      <Route path="/forgot" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
 
       <Route path="/setup/currency" element={<ProtectedRoute><CurrencySetup /></ProtectedRoute>} />
 
-      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route element={<ProtectedRoute><RequireSetup><Layout /></RequireSetup></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
-
-
-
         <Route path="/recurring" element={<Recurring />} />
         <Route path="/transactions" element={<Transactions />} />
-         <Route path="/splits" element={<Splits />} />
-         <Route path="/savings" element={<SavingsGoals />} />
-
-
-        <Route path="/income"  element={<TransactionForm defaultType="income" />} />
+        <Route path="/splits" element={<Splits />} />
+        <Route path="/savings" element={<SavingsGoals />} />
+        <Route path="/income" element={<TransactionForm defaultType="income" />} />
         <Route path="/expense" element={<TransactionForm defaultType="expense" />} />
         <Route path="/transactions/:id/edit" element={<TransactionForm mode="edit" />} />
 
@@ -89,7 +92,6 @@ export default function App() {
         <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
         <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
         <Route path="/admin/contact-messages" element={<RequireAdmin><AdminContactMessages /></RequireAdmin>} />
-
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

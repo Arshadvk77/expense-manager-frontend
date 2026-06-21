@@ -9,6 +9,7 @@ import { recurringAPI } from '../api/recurring';
 import { categoriesAPI } from '../api/categories';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrencies } from '../hooks/useCurrencies.js';
+import { ColorRow } from '../components/ColorRow.jsx';
 import '../styles/main.scss';
 
 const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
@@ -53,10 +54,18 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting]       = useState(false);
 
+  // category create
   const [newCatOpen, setNewCatOpen]   = useState(false);
   const [newCatName, setNewCatName]   = useState('');
   const [newCatColor, setNewCatColor] = useState(CAT_COLORS[0]);
   const [creatingCat, setCreatingCat] = useState(false);
+
+  // category edit/delete
+  const [editCatId, setEditCatId]       = useState(null);
+  const [editCatName, setEditCatName]   = useState('');
+  const [editCatColor, setEditCatColor] = useState(CAT_COLORS[0]);
+  const [savingCat, setSavingCat]       = useState(false);
+  const [confirmCatId, setConfirmCatId] = useState(null);
 
   // load existing transaction for edit
   useEffect(() => {
@@ -148,6 +157,42 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
     }
   }
 
+  function startEditCat(cat, e) {
+    e.stopPropagation(); // don't select the category, open the editor instead
+    setEditCatId(cat.id);
+    setEditCatName(cat.name);
+    setEditCatColor(cat.color || CAT_COLORS[0]);
+    setNewCatOpen(false);
+  }
+
+  async function saveCatEdit() {
+    const name = editCatName.trim();
+    if (!name) return;
+    setSavingCat(true); setError('');
+    try {
+      const res = await categoriesAPI.update(editCatId, { name, color: editCatColor });
+      setCategories((prev) => prev.map((c) => (c.id === editCatId ? res.category : c)));
+      setEditCatId(null);
+    } catch (err) {
+      setError(err.message || 'Could not update the category.');
+    } finally {
+      setSavingCat(false);
+    }
+  }
+
+  async function deleteCat() {
+    try {
+      await categoriesAPI.remove(confirmCatId);
+      setCategories((prev) => prev.filter((c) => c.id !== confirmCatId));
+      if (categoryId === confirmCatId) setCategoryId(null);
+      setEditCatId(null);
+      setConfirmCatId(null);
+    } catch (err) {
+      setError(err.message || 'Could not delete the category.');
+      setConfirmCatId(null);
+    }
+  }
+
   if (loading) {
     return (<><Topbar title="Edit transaction" sub="Loading…" /><div className="card pad-lg muted">Loading…</div></>);
   }
@@ -210,21 +255,38 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
         <div>
           <div className="text-muted text-small text-semibold" style={{ marginBottom: 12 }}>Category</div>
           <div className="category-grid">
-            {categories.map((c) => (
-              <button
-                key={c.id} type="button"
-                onClick={() => setCategoryId(c.id === categoryId ? null : c.id)}
-                className={`card category-grid__button ${c.id === categoryId ? 'category-grid__button--active' : ''}`}
-              >
-                <span className="m-ic" style={{ width: 32, height: 32, background: (c.color || '#888') + '22', color: c.color || 'var(--ink)' }}>
-                  {(c.name || '?').charAt(0)}
-                </span>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</span>
-              </button>
-            ))}
+            {categories.map((c) => {
+              const isOwn = !c.is_system; // system categories can't be edited
+              return (
+                <button
+                  key={c.id} type="button"
+                  onClick={() => setCategoryId(c.id === categoryId ? null : c.id)}
+                  className={`card category-grid__button ${c.id === categoryId ? 'category-grid__button--active' : ''}`}
+                  style={{ position: 'relative' }}
+                >
+                  <span className="m-ic" style={{ width: 32, height: 32, background: (c.color || '#888') + '22', color: c.color || 'var(--ink)' }}>
+                    {(c.name || '?').charAt(0)}
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</span>
+
+                  {/* edit gear — only on the user's own categories */}
+                  {isOwn && (
+                    <span
+                      onClick={(e) => startEditCat(c, e)}
+                      title="Edit category"
+                      style={{ position: 'absolute', top: 6, right: 6, padding: 3, borderRadius: 6, opacity: 0.6 }}
+                      onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
+                      onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.6)}
+                    >
+                      <Icon name="gear" size={13} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
 
             {/* + New tile */}
-            <button type="button" className="card category-grid__button" onClick={() => setNewCatOpen((v) => !v)} style={{ borderStyle: 'dashed' }}>
+            <button type="button" className="card category-grid__button" onClick={() => { setNewCatOpen((v) => !v); setEditCatId(null); }} style={{ borderStyle: 'dashed' }}>
               <span className="m-ic" style={{ width: 32, height: 32, background: 'var(--line)', color: 'var(--ink)' }}>
                 <Icon name="plus" size={16} />
               </span>
@@ -232,6 +294,7 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
             </button>
           </div>
 
+          {/* Create panel */}
           {newCatOpen && (
             <div className="card" style={{ marginTop: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
@@ -246,17 +309,30 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
                 </button>
                 <button className="btn ghost" onClick={() => { setNewCatOpen(false); setNewCatName(''); }}>Cancel</button>
               </div>
-              <div className="row center" style={{ gap: 8 }}>
-                {CAT_COLORS.map((col) => (
-                  <span
-                    key={col} onClick={() => setNewCatColor(col)}
-                    style={{
-                      width: 22, height: 22, borderRadius: '50%', background: col, cursor: 'pointer',
-                      outline: newCatColor === col ? '2px solid var(--ink)' : '2px solid transparent', outlineOffset: 2,
-                    }}
-                  />
-                ))}
+              <ColorRow value={newCatColor} onChange={setNewCatColor} />
+            </div>
+          )}
+
+          {/* Edit panel */}
+          {editCatId && (
+            <div className="card" style={{ marginTop: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12, borderColor: 'var(--wine)' }}>
+              <div className="text-small text-semibold">Edit category</div>
+              <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
+                <input
+                  className="form-input" autoFocus value={editCatName}
+                  onChange={(e) => setEditCatName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveCatEdit(); }}
+                  style={{ flex: 1, minWidth: 160 }}
+                />
+                <button className="btn pri" onClick={saveCatEdit} disabled={savingCat || !editCatName.trim()}>
+                  {savingCat ? 'Saving…' : 'Save'}
+                </button>
+                <button className="btn ghost" onClick={() => setEditCatId(null)}>Cancel</button>
+                <button className="btn ghost" style={{ color: 'var(--clay)' }} onClick={() => setConfirmCatId(editCatId)}>
+                  <Icon name="trash" size={14} /> Delete
+                </button>
               </div>
+              <ColorRow value={editCatColor} onChange={setEditCatColor} />
             </div>
           )}
 
@@ -350,6 +426,15 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
         confirmLabel="Delete"
         onConfirm={remove}
         onCancel={() => setConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmCatId != null}
+        title="Delete category?"
+        message="Transactions using this category will keep their data but lose the label. This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={deleteCat}
+        onCancel={() => setConfirmCatId(null)}
       />
     </>
   );

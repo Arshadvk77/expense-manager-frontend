@@ -39,8 +39,7 @@ function Sidebar() {
     },
     {
       label: 'Money', items: [
-        { id: 'income', label: 'Add income', icon: 'in' },
-        { id: 'expense', label: 'Add expense', icon: 'out' },
+        { id: 'expense', label: 'Add transaction', icon: 'wallet' },
         { id: 'splits', label: 'Split expense', icon: 'share' },
         { id: 'recurring', label: 'Recurring', icon: 'convert' },
       ]
