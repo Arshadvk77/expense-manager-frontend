@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
     EXPORT: '/transactions/export',
     IMPORT: '/transactions/import',
     IMPORT_TEMPLATE: '/transactions/import/template',
+    RATE: '/transactions/rate',
   },
   CATEGORIES: {
     BASE: '/categories',

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Topbar } from '../components/Layout.jsx';
 import { Icon } from '../components/Icon.jsx';
 import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { adminAPI } from '../api/admin';
 import '../styles/main.scss';
 

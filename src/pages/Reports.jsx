@@ -32,6 +32,7 @@ export default function Reports() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [useDisplay, setUseDisplay] = useState(false); // false = home currency, true = display currency
 
   useEffect(() => {
     setLoading(true); setError('');
@@ -41,7 +42,14 @@ export default function Reports() {
       .finally(() => setLoading(false));
   }, [period]);
 
-  const main = data?.main_currency || 'OMR';
+  const main    = data?.main_currency || 'OMR';
+  const display = data?.display_currency || main;
+  const rate    = data?.display_rate ?? 1;
+  const differ  = display !== main;
+
+  // active currency for the converted figures
+  const cur = useDisplay && differ ? display : main;
+  const conv = (v) => (useDisplay && differ ? Number(v) * rate : Number(v));
 
   const kpis = [
     { ic: 'green', icon: 'in',     l: 'Income',  v: data?.kpis.income,  pct: data?.kpis.income_change_pct },
@@ -50,18 +58,18 @@ export default function Reports() {
     { ic: 'gold',  icon: 'send',   l: 'Currencies used', v: data?.by_currency?.length ?? 0, raw: true },
   ];
 
-  const pairs   = (data?.trend || []).map((t) => [t.income, t.expense]);
+  const pairs   = (data?.trend || []).map((t) => [conv(t.income), conv(t.expense)]);
   const months  = (data?.trend || []).map((t) => t.month);
-  const savings = (data?.savings_cumulative || []).map((s) => s.value);
+  const savings = (data?.savings_cumulative || []).map((s) => conv(s.value));
 
   const byCategory = (data?.by_category || []).map((c, i) => ({
     name: c.name,
-    v: c.value,
+    v: conv(c.value),
     color: c.color || CAT_COLORS[i % CAT_COLORS.length],
   }));
   const categoryTotal = byCategory.reduce((s, c) => s + c.v, 0);
 
-  const byCurrency      = data?.by_currency || [];
+  const byCurrency       = data?.by_currency || [];
   const maxCurrencySpend = Math.max(1, ...byCurrency.map((c) => c.expense_main));
 
   return (
@@ -72,6 +80,12 @@ export default function Reports() {
             <button key={p.key} className={period === p.key ? 'on' : ''} onClick={() => setPeriod(p.key)}>{p.label}</button>
           ))}
         </div>
+        {differ && (
+          <div className="seg">
+            <button className={!useDisplay ? 'on' : ''} onClick={() => setUseDisplay(false)}>{main}</button>
+            <button className={useDisplay ? 'on' : ''} onClick={() => setUseDisplay(true)}>{display}</button>
+          </div>
+        )}
         <button className="btn"><Icon name="download" size={15} /> Export PDF</button>
       </Topbar>
 
@@ -80,6 +94,12 @@ export default function Reports() {
 
       {!loading && data && (
         <>
+          {differ && useDisplay && (
+            <div className="muted text-small" style={{ marginTop: -4 }}>
+              Showing values converted to {display} at today's rate. Switch to {main} for stable historical comparison.
+            </div>
+          )}
+
           {/* KPIs */}
           <div className="grid grid-4" style={{ gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
             {kpis.map((k, i) => (
@@ -87,7 +107,7 @@ export default function Reports() {
                 <div className="top"><span className={'ic ' + k.ic}><Icon name={k.icon} size={18} /></span></div>
                 <div className="lbl">{k.l}</div>
                 <div className="val num" style={{ color: k.ic === 'wine' || k.ic === 'gold' ? 'var(--wine)' : 'var(--ink)' }}>
-                  {k.raw ? k.v : `${main} ${compact(k.v || 0)}`}
+                  {k.raw ? k.v : `${cur} ${compact(conv(k.v || 0))}`}
                 </div>
                 {!k.raw && <div className="muted" style={{ fontSize: 11.5, marginTop: 3 }}>{changeLabel(k.pct)}</div>}
               </div>
@@ -98,7 +118,7 @@ export default function Reports() {
           <div className="grid cols-main" style={{ gridTemplateColumns: '1.55fr 1fr', gap: 16 }}>
             <div className="card pad-lg">
               <div className="card-h">
-                <div><div className="t">Income vs Expense</div><div className="s">Last 6 months · {main}</div></div>
+                <div><div className="t">Income vs Expense</div><div className="s">Last 6 months · {cur}</div></div>
                 <div className="row" style={{ gap: 14, fontSize: 11.5, color: 'var(--muted)' }}>
                   <span><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--wine)', display: 'inline-block', marginRight: 5 }} />Income</span>
                   <span><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--gold)', display: 'inline-block', marginRight: 5 }} />Expense</span>
@@ -110,7 +130,7 @@ export default function Reports() {
             <div className="card pad-lg">
               <div className="card-h"><div className="t">By category</div><span className="chip">{period}</span></div>
               <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}>
-                <Donut data={byCategory} size={170} stroke={22} center1={`${main} ${compact(categoryTotal)}`} center2="SPENT" />
+                <Donut data={byCategory} size={170} stroke={22} center1={`${cur} ${compact(categoryTotal)}`} center2="SPENT" />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {byCategory.slice(0, 4).map((s, i) => (
@@ -119,7 +139,7 @@ export default function Reports() {
                       <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color }} />
                       <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>{s.name}</span>
                     </span>
-                    <span className="mono muted">{main} {fmt(s.v)}</span>
+                    <span className="mono muted">{cur} {fmt(s.v)}</span>
                   </div>
                 ))}
                 {byCategory.length === 0 && <div className="muted text-small">No expenses in this period.</div>}
@@ -127,7 +147,7 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* By currency — NEW */}
+          {/* By currency — always original amounts */}
           <div className="card pad-lg">
             <div className="card-h">
               <div>
@@ -177,10 +197,10 @@ export default function Reports() {
             <div className="card-h">
               <div><div className="t">Cumulative savings</div><div className="s">Last 6 months</div></div>
               <div className="num" style={{ fontSize: 22, fontWeight: 800, color: 'var(--wine)' }}>
-                {main} {compact(savings[savings.length - 1] || 0)}
+                {cur} {compact(savings[savings.length - 1] || 0)}
               </div>
             </div>
-            <AreaChart data={savings} labels={months} color="var(--wine)" prefix={`${main} `} height={210} />
+            <AreaChart data={savings} labels={months} color="var(--wine)" prefix={`${cur} `} height={210} />
           </div>
         </>
       )}

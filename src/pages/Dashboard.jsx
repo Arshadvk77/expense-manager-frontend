@@ -4,11 +4,10 @@ import { Icon } from '../components/Icon.jsx';
 import { Sparkline, AreaChart, Donut } from '../components/Charts.jsx';
 import { useNavigate } from 'react-router-dom';
 import { SYMBOL, fmt } from '../lib/currency.js';
-import { useAuth } from '../hooks/useAuth.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { SavingsPlans } from '../components/SavingsPlans.jsx';
 import { dashboardAPI } from '../api/dashboard';
 import { splitsAPI } from '../api/splits';
-
 
 const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch { return d; } };
 
@@ -31,21 +30,31 @@ export default function Dashboard() {
   useEffect(() => {
     splitsAPI.list()
       .then((res) => setSplitSummary(res.summary))
-      .catch(() => { }); // silent — teaser just won't show if it fails
+      .catch(() => {}); // silent
   }, []);
 
-  const main = data?.main_currency || 'OMR';
-  const sym = SYMBOL[main] || main;
+  // --- currency display logic ---
+  const main    = data?.main_currency || 'OMR';
+  const display = data?.display_currency || main;
+  const rate    = data?.display_rate ?? 1;            // main → display
+  const showHome = user?.preferences?.show_home_value ?? true;
+  const differ  = display !== main;
+
+  const sym     = SYMBOL[display] || display;          // big numbers = display currency
+  const mainSym = SYMBOL[main] || main;                // small line = home currency
+  const toDisplay = (v) => Number(v) * rate;
+
   const t = data?.totals || { income: 0, expense: 0, saved: 0 };
   const trend = data?.trend || [];
   const labels = trend.map((m) => m.label);
   const topCat = data?.by_category?.[0] || null;
+  const wallets = data?.wallets || [];
 
   const stats = [
-    { ic: 'green', icon: 'in', lbl: 'Income', val: t.income, spark: trend.map((m) => m.income), color: 'var(--green)' },
-    { ic: 'clay', icon: 'out', lbl: 'Spent', val: t.expense, spark: trend.map((m) => m.expense), color: 'var(--clay)' },
-    { ic: 'wine', icon: 'wallet', lbl: 'Saved', val: t.saved, spark: trend.map((m) => m.net), color: 'var(--wine)' },
-    { ic: 'gold', icon: 'send', lbl: topCat ? `Top: ${topCat.name}` : 'Top category', val: topCat?.total || 0, spark: trend.map((m) => m.net), color: 'var(--gold)' },
+    { ic: 'green', icon: 'in',     lbl: 'Income', val: t.income,  spark: trend.map((m) => m.income),  color: 'var(--green)' },
+    { ic: 'clay',  icon: 'out',    lbl: 'Spent',  val: t.expense, spark: trend.map((m) => m.expense), color: 'var(--clay)' },
+    { ic: 'wine',  icon: 'wallet', lbl: 'Saved',  val: t.saved,   spark: trend.map((m) => m.net),     color: 'var(--wine)' },
+    { ic: 'gold',  icon: 'send',   lbl: topCat ? `Top: ${topCat.name}` : 'Top category', val: topCat?.total || 0, spark: trend.map((m) => m.net), color: 'var(--gold)' },
   ];
 
   const split = (data?.by_category || []).map((c) => ({ name: c.name, v: c.total, color: c.color || 'var(--wine)' }));
@@ -54,7 +63,7 @@ export default function Dashboard() {
   return (
     <>
       <Topbar title={`Welcome back ${user?.name || ''}`} sub="Here's how your money moved this month.">
-        <button className="btn pri" onClick={() => navigate('/add-expense')}><Icon name="plus" size={16} /> Add</button>
+        <button className="btn pri" onClick={() => navigate('/expense')}><Icon name="plus" size={16} /> Add</button>
       </Topbar>
 
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}
@@ -71,13 +80,47 @@ export default function Dashboard() {
                 </div>
                 <div className="lbl">{s.lbl}</div>
                 <div className="row between center" style={{ marginTop: 2 }}>
-                  <div className="val num">{sym} {fmt(Number(s.val))}</div>
+                  <div>
+                    <div className="val num">{sym} {fmt(toDisplay(s.val))}</div>
+                    {differ && showHome && (
+                      <div className="mono" style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 1 }}>
+                        {mainSym} {fmt(Number(s.val))}
+                      </div>
+                    )}
+                  </div>
                   <Sparkline data={s.spark.length ? s.spark : [0, 0]} color={s.color} />
                 </div>
               </div>
             ))}
           </div>
 
+          {/* Balances by currency — only when user uses more than one */}
+          {wallets.length > 1 && (
+            <div className="card pad-lg">
+              <div className="card-h"><div className="t">Balances by currency</div></div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+                {wallets.map((w) => {
+                  const wsym = SYMBOL[w.currency] || w.currency;
+                  const positive = w.balance >= 0;
+                  return (
+                    <div key={w.currency} className="card" style={{ flex: '1 1 150px', minWidth: 150, padding: 14 }}>
+                      <div className="row center" style={{ gap: 8 }}>
+                        <span className="chip wine mono">{w.currency}</span>
+                      </div>
+                      <div className="num" style={{ fontSize: 20, fontWeight: 800, marginTop: 6, color: positive ? 'var(--green)' : 'var(--clay)' }}>
+                        {positive ? '' : '−'}{wsym} {fmt(Math.abs(w.balance))}
+                      </div>
+                      <div className="muted text-small" style={{ marginTop: 2 }}>
+                        +{fmt(w.income)} · −{fmt(w.expense)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Split teaser */}
           {splitSummary?.owed_to_me > 0 && (
             <div className="card pad-lg row between center">
               <div>
@@ -94,11 +137,16 @@ export default function Dashboard() {
               <div className="card-h">
                 <div>
                   <div className="t">Net savings</div>
-                  <div className="s">Last 6 months · {main}</div>
+                  <div className="s">Last 6 months · {display}</div>
                 </div>
               </div>
-              <div className="num" style={{ fontSize: 30, fontWeight: 800, marginBottom: 6 }}>{sym} {fmt(Number(t.saved))}</div>
-              <AreaChart data={nets.length ? nets : [0, 0]} labels={labels} color="var(--wine)" prefix={sym + ' '} height={236} />
+              <div className="num" style={{ fontSize: 30, fontWeight: 800, marginBottom: 2 }}>{sym} {fmt(toDisplay(t.saved))}</div>
+              {differ && showHome && (
+                <div className="mono" style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
+                  {mainSym} {fmt(Number(t.saved))} in {main}
+                </div>
+              )}
+              <AreaChart data={(nets.length ? nets : [0, 0]).map(toDisplay)} labels={labels} color="var(--wine)" prefix={sym + ' '} height={236} />
             </div>
 
             <div className="card pad-lg">
@@ -108,7 +156,7 @@ export default function Dashboard() {
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}>
-                    <Donut data={split} size={176} stroke={24} center1={`${sym} ${fmt(Number(t.expense))}`} center2="THIS MONTH" />
+                    <Donut data={split.map((s) => ({ ...s, v: toDisplay(s.v) }))} size={176} stroke={24} center1={`${sym} ${fmt(toDisplay(t.expense))}`} center2="THIS MONTH" />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                     {split.map((s, i) => (
@@ -117,7 +165,7 @@ export default function Dashboard() {
                           <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color }} />
                           <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{s.name}</span>
                         </span>
-                        <span className="mono" style={{ color: 'var(--muted)' }}>{sym} {fmt(Number(s.v))}</span>
+                        <span className="mono" style={{ color: 'var(--muted)' }}>{sym} {fmt(toDisplay(s.v))}</span>
                       </div>
                     ))}
                   </div>
@@ -166,8 +214,7 @@ export default function Dashboard() {
               </table>
             </div>
 
-            {/* Savings plan section */}
-            <SavingsPlans mainCurrency={main} />
+            <SavingsPlans mainCurrency={display} />
           </div>
         </>
       )}

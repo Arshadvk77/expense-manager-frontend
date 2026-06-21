@@ -1,7 +1,7 @@
 import { useNavigate, useLocation, Outlet, useOutletContext, Link } from 'react-router-dom';
 import { Icon } from './Icon.jsx';
 import { useApp } from '../context.jsx';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useState } from 'react';
 import { Toggle } from './Toggle.jsx';
 import { UserMenu } from './SiteChrome.jsx';

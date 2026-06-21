@@ -82,5 +82,13 @@ export const transactionsAPI = {
       throw error.response?.data || { message: 'Import failed' };
     }
   },
+  getRate: async (from, to) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.TRANSACTIONS.RATE, { params: { from, to } });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to fetch rate' };
+    }
+  },
 };
 

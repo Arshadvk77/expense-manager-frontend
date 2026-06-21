@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 import { transactionsAPI } from '../api/transactions';
 import { recurringAPI } from '../api/recurring';
 import { categoriesAPI } from '../api/categories';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useCurrencies } from '../hooks/useCurrencies.js';
 import { ColorRow } from '../components/ColorRow.jsx';
 import '../styles/main.scss';
@@ -29,44 +29,62 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
     ? user.preferences.tracked_currencies
     : FALLBACK_TRACKED;
 
-  const [type, setType]       = useState(defaultType);
-  const [amount, setAmount]   = useState('');
-  const [currency, setCurrency] = useState(user?.preferences?.main_currency || trackedCodes[0] || 'OMR');
-  const [categoryId, setCategoryId] = useState(null);
-  const [date, setDate]       = useState(today());
-  const [source, setSource]   = useState('');
-  const [note, setNote]       = useState('');
+  const [type, setType] = useState(defaultType);
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState(
+    user?.preferences?.display_currency
+    || user?.preferences?.main_currency
+    || trackedCodes[0]
+    || 'USD'
+  ); const [categoryId, setCategoryId] = useState(null);
+  const [date, setDate] = useState(today());
+  const [source, setSource] = useState('');
+  const [note, setNote] = useState('');
 
   // recurring (add mode only)
-  const [repeat, setRepeat]       = useState(false);
+  const [repeat, setRepeat] = useState(false);
   const [frequency, setFrequency] = useState('monthly');
-  const [interval, setIntervalN]  = useState(1);
-  const [ends, setEnds]           = useState('never');
-  const [endDate, setEndDate]     = useState('');
-  const [maxOcc, setMaxOcc]       = useState('');
+  const [interval, setIntervalN] = useState(1);
+  const [ends, setEnds] = useState('never');
+  const [endDate, setEndDate] = useState('');
+  const [maxOcc, setMaxOcc] = useState('');
 
-  const [categories, setCategories]   = useState([]);
-  const [loading, setLoading]         = useState(isEdit);
-  const [saving, setSaving]           = useState(false);
-  const [error, setError]             = useState('');
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(isEdit);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleting, setDeleting]       = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // category create
-  const [newCatOpen, setNewCatOpen]   = useState(false);
-  const [newCatName, setNewCatName]   = useState('');
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState(CAT_COLORS[0]);
   const [creatingCat, setCreatingCat] = useState(false);
 
   // category edit/delete
-  const [editCatId, setEditCatId]       = useState(null);
-  const [editCatName, setEditCatName]   = useState('');
+  const [editCatId, setEditCatId] = useState(null);
+  const [editCatName, setEditCatName] = useState('');
   const [editCatColor, setEditCatColor] = useState(CAT_COLORS[0]);
-  const [savingCat, setSavingCat]       = useState(false);
+  const [savingCat, setSavingCat] = useState(false);
   const [confirmCatId, setConfirmCatId] = useState(null);
 
+  const homeCcy = user?.preferences?.main_currency;
+
+  // exchange rate state
+  const [liveRate, setLiveRate] = useState(null);     // live rate (1 currency = X home)
+  const [customRate, setCustomRate] = useState('');   // user-typed override
+  const [useCustom, setUseCustom] = useState(false);
+  const [rateLoading, setRateLoading] = useState(false);
+  const [rateError, setRateError] = useState('');
+
+  useEffect(() => {
+    if (isEdit) return; // edit mode keeps the transaction's own currency
+    const pref = user?.preferences?.display_currency || user?.preferences?.main_currency;
+    if (pref) setCurrency(pref);
+  }, [isEdit, user?.preferences?.display_currency, user?.preferences?.main_currency]);
   // load existing transaction for edit
   useEffect(() => {
     if (!isEdit) return;
@@ -84,6 +102,17 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
       .catch((err) => setError(err.message || 'Could not load this transaction.'))
       .finally(() => setLoading(false));
   }, [isEdit, id]);
+
+  // fetch live rate when currency changes (skip when it equals home currency)
+  useEffect(() => {
+    setRateError(''); setLiveRate(null);
+    if (!currency || currency === homeCcy) return;
+    setRateLoading(true);
+    transactionsAPI.getRate(currency, homeCcy)
+      .then((res) => { if (res.success) setLiveRate(res.rate); else setRateError('Live rate unavailable'); })
+      .catch(() => setRateError('Live rate unavailable'))
+      .finally(() => setRateLoading(false));
+  }, [currency, homeCcy]);
 
   // categories for the active type
   useEffect(() => {
@@ -103,8 +132,15 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
 
     setSaving(true);
     try {
+      const ratePayload = (useCustom && parseFloat(customRate) > 0)
+        ? { rate_source: 'custom', rate_to_main: parseFloat(customRate) }
+        : {};
+
       if (isEdit) {
-        await transactionsAPI.update(id, { type, amount: amountNum, currency, category_id: categoryId, date, source: source || null, note: note || null });
+        await transactionsAPI.update(id, {
+          type, amount: amountNum, currency, category_id: categoryId, date,
+          source: source || null, note: note || null, ...ratePayload,
+        });
         navigate('/transactions');
       } else if (repeat) {
         await recurringAPI.create({
@@ -116,8 +152,10 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
         });
         navigate('/recurring');
       } else {
-        await transactionsAPI.create({ type, amount: amountNum, currency, category_id: categoryId, date, source: source || null, note: note || null });
-        navigate('/transactions');
+        await transactionsAPI.create({
+          type, amount: amountNum, currency, category_id: categoryId, date,
+          source: source || null, note: note || null, ...ratePayload,
+        });
       }
     } catch (err) {
       if (err.errors) setFieldErrors(Object.fromEntries(Object.entries(err.errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])));
@@ -158,7 +196,7 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
   }
 
   function startEditCat(cat, e) {
-    e.stopPropagation(); // don't select the category, open the editor instead
+    e.stopPropagation();
     setEditCatId(cat.id);
     setEditCatName(cat.name);
     setEditCatColor(cat.color || CAT_COLORS[0]);
@@ -199,6 +237,10 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
 
   const title = isEdit ? `Edit ${type}` : (type === 'income' ? 'Add income' : 'Log an expense');
 
+  const effectiveRate = useCustom && parseFloat(customRate) > 0 ? parseFloat(customRate) : liveRate;
+  const homeAmount = effectiveRate ? amountNum * effectiveRate : null;
+  const sameCurrency = currency === homeCcy;
+
   return (
     <>
       <Topbar title={title} sub={isEdit ? 'Update the details or delete this entry.' : 'Set the amount, pick a category, done.'}>
@@ -231,9 +273,16 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
               style={{ border: 0, outline: 'none', background: 'transparent', font: 'inherit', fontSize: 52, fontWeight: 800, flex: 1, minWidth: 0, color: 'var(--ink)' }}
             />
           </div>
+
+          {!sameCurrency && homeAmount != null && (
+            <div className="muted" style={{ fontSize: 15, fontWeight: 600, marginTop: 2 }}>
+              ≈ {homeCcy} {homeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          )}
+
           {fieldErrors.amount && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 6 }}>{fieldErrors.amount}</div>}
 
-          {/* Tracked currencies as chips, full list in the dropdown */}
+          {/* Tracked currencies as chips */}
           <div className="currency-chips" style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             {trackedCodes.map((code) => (
               <span key={code} className={`chip ${code === currency ? 'wine' : ''} cursor-pointer`} onClick={() => setCurrency(code)}>{code}</span>
@@ -249,6 +298,38 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
               ))}
             </select>
           </div>
+
+          {/* Exchange rate row — only when currency ≠ home */}
+          {!sameCurrency && (
+            <div className="card" style={{ marginTop: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-soft, transparent)' }}>
+              <div className="row between center" style={{ flexWrap: 'wrap', gap: 8 }}>
+                <div className="text-small">
+                  <span className="muted">Rate: </span>
+                  <span className="mono text-semibold">
+                    1 {currency} = {effectiveRate ? effectiveRate.toLocaleString(undefined, { maximumFractionDigits: 6 }) : '—'} {homeCcy}
+                  </span>
+                  {rateLoading && <span className="muted"> · fetching…</span>}
+                  {rateError && !useCustom && <span style={{ color: 'var(--clay)' }}> · {rateError}</span>}
+                </div>
+                <label className="row center text-small" style={{ gap: 6, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={useCustom} onChange={(e) => { setUseCustom(e.target.checked); if (e.target.checked && liveRate) setCustomRate(String(liveRate)); }} />
+                  Set my own rate
+                </label>
+              </div>
+
+              {useCustom && (
+                <div className="row center" style={{ gap: 8 }}>
+                  <span className="text-small mono">1 {currency} =</span>
+                  <input
+                    className="form-input" type="number" min="0" step="0.000001"
+                    value={customRate} onChange={(e) => setCustomRate(e.target.value)}
+                    placeholder="rate" style={{ width: 140 }}
+                  />
+                  <span className="text-small mono">{homeCcy}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Category */}
@@ -256,7 +337,7 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
           <div className="text-muted text-small text-semibold" style={{ marginBottom: 12 }}>Category</div>
           <div className="category-grid">
             {categories.map((c) => {
-              const isOwn = !c.is_system; // system categories can't be edited
+              const isOwn = !c.is_system;
               return (
                 <button
                   key={c.id} type="button"
@@ -269,7 +350,6 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</span>
 
-                  {/* edit gear — only on the user's own categories */}
                   {isOwn && (
                     <span
                       onClick={(e) => startEditCat(c, e)}

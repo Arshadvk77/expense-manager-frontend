@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { validateLogin } from '../utils/validators';
 import { Alert } from '../components/Alert';
 import '../styles/main.scss';

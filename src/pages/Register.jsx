@@ -1,7 +1,7 @@
 // src/pages/Register.jsx (Simplified)
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useForm } from '../hooks/useForm';
 import { Alert } from '../components/Alert';
 import '../styles/main.scss';
