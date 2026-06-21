@@ -10,6 +10,7 @@ import { categoriesAPI } from '../api/categories';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCurrencies } from '../hooks/useCurrencies.js';
 import { ColorRow } from '../components/ColorRow.jsx';
+import { Alert } from '../components/Alert';
 import '../styles/main.scss';
 
 const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
@@ -31,6 +32,7 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
 
   const [type, setType] = useState(defaultType);
   const [amount, setAmount] = useState('');
+  const [alert, setAlert] = useState(null);
   const [currency, setCurrency] = useState(
     user?.preferences?.display_currency
     || user?.preferences?.main_currency
@@ -124,7 +126,7 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
   const amountNum = parseFloat(amount) || 0;
 
   async function save() {
-    setError(''); setFieldErrors({});
+    setError(''); setFieldErrors({}); setAlert(null);
     if (amountNum <= 0) {
       setFieldErrors({ amount: 'Enter an amount greater than 0.' });
       return;
@@ -137,25 +139,29 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
         : {};
 
       if (isEdit) {
-        await transactionsAPI.update(id, {
+        const res = await transactionsAPI.update(id, {
           type, amount: amountNum, currency, category_id: categoryId, date,
           source: source || null, note: note || null, ...ratePayload,
         });
-        navigate('/transactions');
+        setAlert({ type: 'success', message: res.message || 'Transaction updated.' });
+        setTimeout(() => navigate('/transactions'), 800);
       } else if (repeat) {
-        await recurringAPI.create({
+        const res = await recurringAPI.create({
           type, amount: amountNum, currency, category_id: categoryId || null,
           source: source || null, note: note || null,
           frequency, interval: Number(interval) || 1, start_date: date,
           ends, end_date: ends === 'on_date' ? endDate : null,
           max_occurrences: ends === 'after_count' ? Number(maxOcc) : null,
         });
-        navigate('/recurring');
+        setAlert({ type: 'success', message: res.message || 'Recurring payment created.' });
+        setTimeout(() => navigate('/recurring'), 800);
       } else {
-        await transactionsAPI.create({
+        const res = await transactionsAPI.create({
           type, amount: amountNum, currency, category_id: categoryId, date,
           source: source || null, note: note || null, ...ratePayload,
         });
+        setAlert({ type: 'success', message: res.message || 'Saved.' });
+        setTimeout(() => navigate('/transactions'), 800);
       }
     } catch (err) {
       if (err.errors) setFieldErrors(Object.fromEntries(Object.entries(err.errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])));
@@ -243,6 +249,8 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
 
   return (
     <>
+      {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
+
       <Topbar title={title} sub={isEdit ? 'Update the details or delete this entry.' : 'Set the amount, pick a category, done.'}>
         <button className="btn ghost" onClick={() => navigate(-1)} disabled={saving || deleting}>Cancel</button>
         <button className="btn pri" onClick={save} disabled={saving || deleting}>
