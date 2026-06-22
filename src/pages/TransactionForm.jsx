@@ -161,7 +161,7 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
           source: source || null, note: note || null, ...ratePayload,
         });
         setAlert({ type: 'success', message: res.message || 'Saved.' });
-        setTimeout(() => navigate('/transactions'), 800);
+        // setTimeout(() => navigate('/transactions'), 800);
       }
     } catch (err) {
       if (err.errors) setFieldErrors(Object.fromEntries(Object.entries(err.errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])));
@@ -433,7 +433,41 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
         <div className="grid grid-2cols">
           <div className="form-field">
             <label>{repeat ? 'Starts on' : 'Date'}</label>
-            <input className="form-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div
+              className="form-input"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                padding: '8px 12px', position: 'relative',
+              }}
+              onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
+            >
+              <Icon name="cal" size={17} />
+              <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: date ? 'var(--ink)' : 'var(--muted)' }}>
+                {date
+                  ? new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'Pick a date'}
+              </span>
+              {!repeat && date !== today() && (
+                <button
+                  type="button"
+                  className="chip"
+                  onClick={(e) => { e.stopPropagation(); setDate(today()); }}
+                  style={{ fontSize: 11 }}
+                >
+                  Today
+                </button>
+              )}
+              <input
+                type="date"
+                value={date}
+                max={!repeat ? today() : undefined}
+                onChange={(e) => setDate(e.target.value)}
+                style={{
+                  position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer',
+                  width: '100%', height: '100%', border: 0,
+                }}
+              />
+            </div>
             {fieldErrors.date && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 4 }}>{fieldErrors.date}</div>}
           </div>
           <div className="form-field">

@@ -255,7 +255,6 @@ export default function Settings() {
               <span className="chip wine" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="lock" size={12} />
                 <span className="mono">{mainCcy}</span>
-                {mainMeta?.name && <span style={{ opacity: 0.85 }}>· {mainMeta.name}</span>}
               </span>
             }
           />
@@ -267,7 +266,7 @@ export default function Settings() {
             control={
               <select
                 className="input"
-                style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}
+                style={{padding: '6px 10px', fontSize: 13 , width:'80px'}}
                 value={displayCcy}
                 onChange={(e) => changeDisplay(e.target.value)}
               >

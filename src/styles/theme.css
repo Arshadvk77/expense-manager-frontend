@@ -927,6 +927,8 @@ button {
   .tb-right {
     gap: 8px;
     flex-wrap: wrap;
+    justify-items: end;
+    justify-content: end;
   }
 
   .tb-hide-sm {
