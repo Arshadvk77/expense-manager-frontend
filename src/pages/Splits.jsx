@@ -238,7 +238,40 @@ function SplitForm({ trackedCodes, currencies, mainCurrency, myName, onClose, on
         </div>
         <div className="field">
           <label>Date</label>
-          <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div
+            className="input"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              padding: '10px 12px', position: 'relative',
+            }}
+            onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
+          >
+            <Icon name="cal" size={17} />
+            <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: date ? 'var(--ink)' : 'var(--muted)' }}>
+              {date
+                ? new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                : 'Pick a date'}
+            </span>
+            {date !== today() && (
+              <button
+                type="button"
+                className="chip"
+                onClick={(e) => { e.stopPropagation(); setDate(today()); }}
+                style={{ fontSize: 11 }}
+              >
+                Today
+              </button>
+            )}
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{
+                position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer',
+                width: '100%', height: '100%', border: 0,
+              }}
+            />
+          </div>
         </div>
       </div>
 

@@ -125,7 +125,31 @@ export default function SavingsGoals() {
             </div>
             <div className="field">
               <label>Target date (optional)</label>
-              <input className="input" type="date" min={new Date().toISOString().slice(0,10)} value={form.target_date} onChange={set('target_date')} />
+              <div
+                className="input"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '0 12px', position: 'relative' }}
+                onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
+              >
+                <Icon name="cal" size={17} />
+                <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: form.target_date ? 'var(--ink)' : 'var(--muted)' }}>
+                  {form.target_date
+                    ? new Date(form.target_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                    : 'No target date'}
+                </span>
+                {form.target_date && (
+                  <button type="button" className="chip" style={{ fontSize: 11 }}
+                    onClick={(e) => { e.stopPropagation(); setForm((f) => ({ ...f, target_date: '' })); }}>
+                    Clear
+                  </button>
+                )}
+                <input
+                  type="date"
+                  value={form.target_date}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={set('target_date')}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', border: 0 }}
+                />
+              </div>
             </div>
           </div>
           <div className="row center" style={{ gap: 8 }}>

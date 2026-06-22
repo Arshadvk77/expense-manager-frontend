@@ -155,7 +155,28 @@ export default function Recurring() {
             </div>
             <div className="field">
               <label>Starts</label>
-              <input className="input" type="date" value={form.start_date} onChange={set('start_date')} />
+              <div
+                className="input"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', position: 'relative' }}
+                onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
+              >
+                <Icon name="cal" size={17} />
+                <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: form.start_date ? 'var(--ink)' : 'var(--muted)' }}>
+                  {form.start_date
+                    ? new Date(form.start_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                    : 'Pick a date'}
+                </span>
+                {form.start_date !== today() && (
+                  <button type="button" className="chip" style={{ fontSize: 11 }}
+                    onClick={(e) => { e.stopPropagation(); setForm((f) => ({ ...f, start_date: today() })); }}>
+                    Today
+                  </button>
+                )}
+                <input
+                  type="date" value={form.start_date} onChange={set('start_date')}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', border: 0 }}
+                />
+              </div>
             </div>
             <div className="field">
               <label>Ends</label>
@@ -168,7 +189,22 @@ export default function Recurring() {
             {form.ends === 'on_date' && (
               <div className="field">
                 <label>End date</label>
-                <input className="input" type="date" min={form.start_date} value={form.end_date} onChange={set('end_date')} />
+                <div
+                  className="input"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', position: 'relative' }}
+                  onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
+                >
+                  <Icon name="cal" size={17} />
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: form.end_date ? 'var(--ink)' : 'var(--muted)' }}>
+                    {form.end_date
+                      ? new Date(form.end_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Pick an end date'}
+                  </span>
+                  <input
+                    type="date" value={form.end_date} min={form.start_date} onChange={set('end_date')}
+                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', border: 0 }}
+                  />
+                </div>
               </div>
             )}
             {form.ends === 'after_count' && (
