@@ -77,8 +77,8 @@ export default function Dashboard() {
               <div key={i} className="card stat">
                 <div className="top">
                   <span className={'ic ' + s.ic}><Icon name={s.icon} size={18} /></span>
-                </div>
                 <div className="lbl">{s.lbl}</div>
+                </div>
                 <div className="row between center" style={{ marginTop: 2 }}>
                   <div>
                     <div className="val num">{sym} {fmt(toDisplay(s.val))}</div>

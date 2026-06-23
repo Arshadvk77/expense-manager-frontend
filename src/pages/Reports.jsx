@@ -7,9 +7,9 @@ import { reportsAPI } from '../api/reports';
 
 const PERIODS = [
   { key: 'month', label: 'Month' },
-  { key: '3m',    label: '3M' },
-  { key: 'year',  label: 'Year' },
-  { key: 'all',   label: 'All' },
+  { key: '3m', label: '3M' },
+  { key: 'year', label: 'Year' },
+  { key: 'all', label: 'All' },
 ];
 
 const CAT_COLORS = ['var(--wine)', 'var(--plum)', 'var(--gold)', 'var(--teal)', 'var(--clay)', 'var(--muted-2)', '#0891b2', '#7c3aed'];
@@ -42,24 +42,24 @@ export default function Reports() {
       .finally(() => setLoading(false));
   }, [period]);
 
-  const main    = data?.main_currency || 'OMR';
+  const main = data?.main_currency || 'OMR';
   const display = data?.display_currency || main;
-  const rate    = data?.display_rate ?? 1;
-  const differ  = display !== main;
+  const rate = data?.display_rate ?? 1;
+  const differ = display !== main;
 
   // active currency for the converted figures
   const cur = useDisplay && differ ? display : main;
   const conv = (v) => (useDisplay && differ ? Number(v) * rate : Number(v));
 
   const kpis = [
-    { ic: 'green', icon: 'in',     l: 'Income',  v: data?.kpis.income,  pct: data?.kpis.income_change_pct },
-    { ic: 'clay',  icon: 'out',    l: 'Expense', v: data?.kpis.expense, pct: data?.kpis.expense_change_pct },
-    { ic: 'wine',  icon: 'wallet', l: 'Saved',   v: data?.kpis.saved,   pct: data?.kpis.saved_change_pct },
-    { ic: 'gold',  icon: 'send',   l: 'Currencies used', v: data?.by_currency?.length ?? 0, raw: true },
+    { ic: 'green', icon: 'in', l: 'Income', v: data?.kpis.income, pct: data?.kpis.income_change_pct },
+    { ic: 'clay', icon: 'out', l: 'Expense', v: data?.kpis.expense, pct: data?.kpis.expense_change_pct },
+    { ic: 'wine', icon: 'wallet', l: 'Saved', v: data?.kpis.saved, pct: data?.kpis.saved_change_pct },
+    { ic: 'gold', icon: 'send', l: 'Currencies used', v: data?.by_currency?.length ?? 0, raw: true },
   ];
 
-  const pairs   = (data?.trend || []).map((t) => [conv(t.income), conv(t.expense)]);
-  const months  = (data?.trend || []).map((t) => t.month);
+  const pairs = (data?.trend || []).map((t) => [conv(t.income), conv(t.expense)]);
+  const months = (data?.trend || []).map((t) => t.month);
   const savings = (data?.savings_cumulative || []).map((s) => conv(s.value));
 
   const byCategory = (data?.by_category || []).map((c, i) => ({
@@ -69,7 +69,7 @@ export default function Reports() {
   }));
   const categoryTotal = byCategory.reduce((s, c) => s + c.v, 0);
 
-  const byCurrency       = data?.by_currency || [];
+  const byCurrency = data?.by_currency || [];
   const maxCurrencySpend = Math.max(1, ...byCurrency.map((c) => c.expense_main));
 
   return (
@@ -104,8 +104,9 @@ export default function Reports() {
           <div className="grid grid-4" style={{ gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
             {kpis.map((k, i) => (
               <div key={i} className="card stat">
-                <div className="top"><span className={'ic ' + k.ic}><Icon name={k.icon} size={18} /></span></div>
-                <div className="lbl">{k.l}</div>
+                <div className="top"><span className={'ic ' + k.ic}><Icon name={k.icon} size={18} /></span>
+                  <div className="lbl">{k.l}</div>
+                </div>
                 <div className="val num" style={{ color: k.ic === 'wine' || k.ic === 'gold' ? 'var(--wine)' : 'var(--ink)' }}>
                   {k.raw ? k.v : `${cur} ${compact(conv(k.v || 0))}`}
                 </div>

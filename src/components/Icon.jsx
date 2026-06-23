@@ -36,6 +36,7 @@ export const Icon = ({ name, size = 18, sw = 1.7 }) => {
     case 'users':    return <svg {...c}><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 3.5a4 4 0 0 1 0 7.5"/><path d="M22 21a7 7 0 0 0-5-6.7"/></svg>;
     case 'eye':      return <svg {...c}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
     case 'eye-off':  return <svg {...c}><path d="M9.9 4.2A9.1 9.1 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.2 3.2M6.1 6.1A18.5 18.5 0 0 0 1 12s4 8 11 8a9.1 9.1 0 0 0 5.9-2.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M1 1l22 22"/></svg>;
+    case 'split':    return <svg {...c}><path d="M12 3v7a3 3 0 0 0 3 3h2a3 3 0 0 1 3 3v3"/><path d="M12 3v7a3 3 0 0 1-3 3H7a3 3 0 0 0-3 3v3"/><path d="M17 16l3 3-3 3"/><path d="M7 16l-3 3 3 3"/></svg>;
     default: return null;
   }
 };

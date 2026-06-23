@@ -12,7 +12,7 @@ const ROUTE = {
   recurring: '/recurring',
   splits: '/splits',
   savings: '/savings',
-  adminHome : '/admin' ,
+  adminHome: '/admin',
   adminUsers: '/admin/users',
   adminContact: '/admin/contact-messages',
 };
@@ -175,8 +175,8 @@ function BottomNav() {
       <button className={'bn-item ' + (on('tx') ? 'on' : '')} onClick={() => navigate(ROUTE.tx)}>
         <Icon name="list" /><span>Activity</span>
       </button>
-      <button className={'bn-item ' + (on('settings') ? 'on' : '')} onClick={() => navigate(ROUTE.settings)}>
-        <Icon name="gear" /><span>Settings</span>
+      <button className={'bn-item ' + (on('splits') ? 'on' : '')} onClick={() => navigate(ROUTE.splits)}>
+        <Icon name="share" /><span>Split</span>
       </button>
     </nav>
   );
@@ -212,18 +212,28 @@ export function Topbar({ title, sub, children }) {
 
   return (
     <header className="topbar">
-      <div>
-        <div className="hi">{title}</div>
-        {sub && <div className="sub">{sub}</div>}
+      <div style={{ display: 'flex' , justifyContent:'space-between' }}>
+        <div>
+          <div className="hi">{title}</div>
+          {sub && <div className="sub">{sub}</div>}
+        </div>
+        <div className='tb-hide-md'>
+          <button className='bn-item' onClick={() => navigate('/settings')}>
+            <Icon name="gear" /><span>Settings</span>
+          </button>
+        </div>
       </div>
-      <div className="tb-right">
+      <div></div>
+      <div className="tb-right tb-hide-sm">
         <Toggle on={dark} onClick={() => setDark(d => !d)} />
         {children}
-        <button className="icon-btn tb-hide-sm">
-          <span className="dot" />
-          <Icon name="bell" size={17} />
-        </button>
-        <UserMenu user={user} />
+        <div className='tb-hide-sm'>
+          {/* <button className="icon-btn tb-hide-sm">
+            <span className="dot" />
+            <Icon name="bell" size={17} />
+          </button> */}
+          <UserMenu user={user} />
+        </div>
       </div>
     </header>
   );

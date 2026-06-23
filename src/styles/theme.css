@@ -531,7 +531,8 @@ button {
 .stat .top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap : 10px
+  /* justify-content: space-between; */
 }
 
 .stat .ic {
@@ -546,7 +547,6 @@ button {
 .stat .lbl {
   font-size: 12.5px;
   color: var(--muted);
-  margin-top: 14px;
   font-weight: 500;
 }
 
@@ -903,7 +903,12 @@ button {
     opacity: 1;
   }
 }
+@media (min-width: 680px) {
 
+  .tb-hide-md {
+    display: none !important;
+  }
+}
 /* ── Phone: reflow topbar, stack inner grids, shrink big numbers ── */
 @media (max-width: 680px) {
   .main {

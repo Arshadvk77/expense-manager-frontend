@@ -298,7 +298,7 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
             <select
               value={trackedCodes.includes(currency) ? '' : currency}
               onChange={(e) => e.target.value && setCurrency(e.target.value)}
-              style={{ marginLeft: 'auto', border: '1px solid var(--line)', borderRadius: 999, padding: '4px 10px', background: 'transparent', fontSize: 12, color: 'var(--ink)' }}
+              style={{ marginLeft: 'auto', border: '1px solid var(--line)', borderRadius: 999, padding: '4px 10px', background: 'transparent', fontSize: 12, color: 'var(--ink)' ,width: '90px' }}
             >
               <option value="">Other…</option>
               {currencies.filter((c) => !trackedCodes.includes(c.code)).map((c) => (
