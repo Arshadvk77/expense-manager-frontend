@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Icon } from '../components/Icon.jsx';
+import { AndroidIcon, AppleIcon, Icon } from '../components/Icon.jsx';
 import { SiteNav, SiteFooter } from '../components/SiteChrome.jsx';
 
 /* Khaleej — marketing landing page.
@@ -147,8 +147,8 @@ export default function Landing() {
               <h2 className="lp-h2" style={{ marginTop: 18 }}>Khaleej in your pocket — coming soon.</h2>
               <p className="lp-lead">Log an expense at the till, check today's rate on the bus, send home from the sofa. The full ledger, built for the phone you actually carry.</p>
               <div className="lp-store">
-                <span className="lp-badge"><Icon name="download" size={18} /><span><small>Coming soon to</small><b>App Store</b></span></span>
-                <span className="lp-badge"><Icon name="download" size={18} /><span><small>Coming soon to</small><b>Google Play</b></span></span>
+                <span className="lp-badge"><AppleIcon /><span><small>Coming soon to</small><b>App Store</b></span></span>
+                <span className="lp-badge"><AndroidIcon name="download" size={18} /><span><small>Coming soon to</small><b>Google Play</b></span></span>
               </div>
               <form className="lp-waitlist" onSubmit={e => e.preventDefault()}>
                 <input className="input" placeholder="you@email.com" defaultValue="" aria-label="Email" />
