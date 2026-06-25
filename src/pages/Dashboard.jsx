@@ -77,10 +77,10 @@ export default function Dashboard() {
               <div key={i} className="card stat">
                 <div className="top">
                   <span className={'ic ' + s.ic}><Icon name={s.icon} size={18} /></span>
-                <div className="lbl">{s.lbl}</div>
+                  <div className="lbl">{s.lbl}</div>
                 </div>
-                <div className="row between center" style={{ marginTop: 2 }}>
-                  <div>
+                <div style={{ marginTop: 2  , paddingLeft:'20px'}}>
+                  <div style={{ minWidth: 0 }}>
                     <div className="val num">{sym} {fmt(toDisplay(s.val))}</div>
                     {differ && showHome && (
                       <div className="mono" style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 1 }}>
@@ -88,7 +88,7 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-                  <Sparkline data={s.spark.length ? s.spark : [0, 0]} color={s.color} />
+                  {/* <Sparkline className="spark" data={s.spark.length ? s.spark : [0, 0]} color={s.color} /> */}
                 </div>
               </div>
             ))}
@@ -98,12 +98,12 @@ export default function Dashboard() {
           {wallets.length > 1 && (
             <div className="card pad-lg">
               <div className="card-h"><div className="t">Balances by currency</div></div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+              <div className="wallet-grid" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
                 {wallets.map((w) => {
                   const wsym = SYMBOL[w.currency] || w.currency;
                   const positive = w.balance >= 0;
                   return (
-                    <div key={w.currency} className="card" style={{ flex: '1 1 150px', minWidth: 150, padding: 14 }}>
+                    <div key={w.currency} className="card wallet-card" style={{ flex: '1 1 150px', minWidth: 150, padding: 14 }}>
                       <div className="row center" style={{ gap: 8 }}>
                         <span className="chip wine mono">{w.currency}</span>
                       </div>

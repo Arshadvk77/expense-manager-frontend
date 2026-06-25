@@ -497,6 +497,7 @@ button {
   box-shadow: var(--sh-1);
 }
 
+
 /* Card */
 .card {
   background: var(--card);
@@ -1960,5 +1961,77 @@ button {
   }
   .split-owe-row .mono {
     margin-left: auto;
+  }
+}
+@media (max-width: 640px) {
+  /* stat cards: 2 per row, compact */
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .card.stat {
+    padding: 10px 12px !important;
+  }
+  .card.stat .top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .card.stat .ic {
+    width: 24px !important;
+    height: 24px !important;
+    flex-shrink: 0;
+  }
+  .card.stat .lbl {
+    font-size: 11px !important;
+    margin: 0 !important;
+    color: var(--muted);
+  }
+  .card.stat .val {
+    font-size: 16px !important;
+    font-weight: 800;
+  }
+  .card.stat .mono {
+    font-size: 9.5px !important;
+  }
+  /* hide the sparkline on mobile so the number gets full width */
+  .card.stat svg.spark,
+  .card.stat .sparkline {
+    display: none !important;
+  }
+
+  /* tighten the main two-column layouts to single column on mobile */
+  .cols-main {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* balances-by-currency cards full width */
+  .card .num { word-break: break-word; }
+}
+
+
+@media (max-width: 640px) {
+  /* balances-by-currency: 2 compact cards per row */
+  .wallet-grid {
+    gap: 8px !important;
+  }
+  .wallet-card {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 0 !important;
+    padding: 10px 12px !important;
+  }
+  .wallet-card .num {
+    font-size: 16px !important;
+    margin-top: 4px !important;
+    word-break: break-word;
+  }
+  .wallet-card .chip {
+    font-size: 11px !important;
+  }
+  .wallet-card .text-small {
+    font-size: 10px !important;
   }
 }
