@@ -10,7 +10,24 @@ import '../styles/main.scss';
 const CURRENCIES = ['OMR', 'AED', 'SAR', 'QAR', 'USD', 'INR'];
 const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
 const today = () => new Date().toISOString().slice(0, 10);
-const freqLabel = (f, n) => (n > 1 ? `Every ${n} ${f.replace('ly', n > 1 ? 's' : '')}` : { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }[f]);
+
+// safe date formatter — append midnight so it doesn't shift across timezones, date only (no time)
+const fmtDate = (d) => {
+  if (!d) return '';
+  try {
+    return new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return d;
+  }
+};
+
+const freqLabel = (f, n) => {
+  if (n > 1) {
+    const unit = { daily: 'days', weekly: 'weeks', monthly: 'months', yearly: 'years' }[f] || f;
+    return `Every ${n} ${unit}`;
+  }
+  return { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }[f] || f;
+};
 
 export default function Recurring() {
   const [rules, setRules]     = useState([]);
@@ -157,21 +174,13 @@ export default function Recurring() {
               <label>Starts</label>
               <div
                 className="input"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', position: 'relative' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '0 12px', position: 'relative', minHeight: 42 }}
                 onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
               >
                 <Icon name="cal" size={17} />
                 <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: form.start_date ? 'var(--ink)' : 'var(--muted)' }}>
-                  {form.start_date
-                    ? new Date(form.start_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-                    : 'Pick a date'}
+                  {form.start_date ? fmtDate(form.start_date) : 'Pick a date'}
                 </span>
-                {form.start_date !== today() && (
-                  <button type="button" className="chip" style={{ fontSize: 11 }}
-                    onClick={(e) => { e.stopPropagation(); setForm((f) => ({ ...f, start_date: today() })); }}>
-                    Today
-                  </button>
-                )}
                 <input
                   type="date" value={form.start_date} onChange={set('start_date')}
                   style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', border: 0 }}
@@ -191,14 +200,12 @@ export default function Recurring() {
                 <label>End date</label>
                 <div
                   className="input"
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', position: 'relative' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '0 12px', position: 'relative', minHeight: 42 }}
                   onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
                 >
                   <Icon name="cal" size={17} />
                   <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: form.end_date ? 'var(--ink)' : 'var(--muted)' }}>
-                    {form.end_date
-                      ? new Date(form.end_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-                      : 'Pick an end date'}
+                    {form.end_date ? fmtDate(form.end_date) : 'Pick an end date'}
                   </span>
                   <input
                     type="date" value={form.end_date} min={form.start_date} onChange={set('end_date')}
@@ -230,25 +237,25 @@ export default function Recurring() {
           {rules.map((r, i) => {
             const income = r.type === 'income';
             return (
-              <div key={r.id} className="row between center" style={{ padding: '14px 0', borderTop: i ? '1px solid var(--line)' : 0, gap: 12, opacity: r.is_active ? 1 : 0.55 }}>
-                <div style={{ minWidth: 0 }}>
+              <div key={r.id} className="row between center" style={{ padding: '14px 0', borderTop: i ? '1px solid var(--line)' : 0, gap: 12, flexWrap: 'wrap', opacity: r.is_active ? 1 : 0.55 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <div className="row center" style={{ gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 700, fontSize: 14 }}>{r.source || r.note || r.category?.name || (income ? 'Income' : 'Expense')}</span>
                     <span className={'chip ' + (income ? 'green' : 'clay')}>{income ? 'Income' : 'Expense'}</span>
                     {!r.is_active && <span className="chip">Paused</span>}
                   </div>
                   <div className="muted text-small" style={{ marginTop: 2 }}>
-                    {freqLabel(r.frequency, r.interval)} · next {r.next_run_date}
-                    {r.ends === 'on_date' && ` · until ${r.end_date}`}
+                    {freqLabel(r.frequency, r.interval)} · next {fmtDate(r.next_run_date)}
+                    {r.ends === 'on_date' && r.end_date && ` · until ${fmtDate(r.end_date)}`}
                     {r.ends === 'after_count' && ` · ${r.occurrences_count}/${r.max_occurrences} done`}
                   </div>
                 </div>
-                <div className="row center" style={{ gap: 8, flexShrink: 0 }}>
+                <div className="row center" style={{ gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
                   <span className="num" style={{ fontWeight: 700, color: income ? 'var(--green)' : 'var(--ink)' }}>
                     {income ? '+' : '−'}{r.currency} {fmt(Number(r.amount))}
                   </span>
                   <button className="btn ghost text-small" onClick={() => toggleActive(r)}>{r.is_active ? 'Pause' : 'Resume'}</button>
-                  <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(r.id)}>Delete</button>
+                  <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(r.id)}><Icon name="trash" size={16}  /></button>
                 </div>
               </div>
             );

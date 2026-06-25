@@ -1937,3 +1937,28 @@ button {
 
   &:hover { color: var(--wine, #6B1A2E); }
 }
+
+@media (max-width: 640px) {
+  .splits-summary { flex-direction: column; }
+  .splits-summary > .card { min-width: 0 !important; width: 100%; }
+
+  .grid-2cols { grid-template-columns: 1fr !important; }
+  .seg { flex-wrap: wrap; }
+
+  /* form person rows */
+  .split-person-row { flex-wrap: wrap; }
+  .split-person-row .input { min-width: 0; }
+  .split-person-row .split-amount-input { width: 100% !important; flex: 1 1 100%; order: 3; }
+  .split-person-row .split-share-preview { width: auto !important; margin-left: auto; }
+
+  /* bill header: title + actions */
+  .split-bill-actions { flex-wrap: wrap; justify-content: flex-start; }
+
+  /* the owe-row: on very narrow screens, let amount + button wrap under the name */
+  .split-owe-row {
+    flex-wrap: wrap;
+  }
+  .split-owe-row .mono {
+    margin-left: auto;
+  }
+}

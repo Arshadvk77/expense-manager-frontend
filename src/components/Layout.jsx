@@ -212,7 +212,7 @@ export function Topbar({ title, sub, children }) {
 
   return (
     <header className="topbar">
-      <div style={{ display: 'flex' , justifyContent:'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <div>
           <div className="hi">{title}</div>
           {sub && <div className="sub">{sub}</div>}
@@ -224,8 +224,11 @@ export function Topbar({ title, sub, children }) {
         </div>
       </div>
       <div></div>
-      <div className="tb-right tb-hide-sm">
-        <Toggle on={dark} onClick={() => setDark(d => !d)} />
+      <div className="tb-right">
+
+        <div className='tb-hide-sm'>
+          <Toggle on={dark} onClick={() => setDark(d => !d)} />
+        </div>
         {children}
         <div className='tb-hide-sm'>
           {/* <button className="icon-btn tb-hide-sm">

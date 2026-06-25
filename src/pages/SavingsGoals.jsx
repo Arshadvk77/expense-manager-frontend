@@ -202,7 +202,7 @@ export default function SavingsGoals() {
               <div className="row" style={{ gap: 8, marginTop: 'auto' }}>
                 <button className="btn pri text-small" style={{ flex: 1 }} onClick={() => { setContribFor(p); setContribAmt(''); }}>Add money</button>
                 <button className="btn ghost text-small" onClick={() => archive(p)}>Archive</button>
-                <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(p.id)}>Delete</button>
+                <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(p.id)}><Icon name="trash" size={16}  /></button>
               </div>
             </div>
           );

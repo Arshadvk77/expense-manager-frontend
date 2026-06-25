@@ -11,10 +11,10 @@ import '../styles/main.scss';
 const today = () => new Date().toISOString().slice(0, 10);
 
 const SPLIT_METHODS = [
-  { key: 'equal',   label: '=',    hint: 'Split equally' },
-  { key: 'exact',   label: '1.23', hint: 'Exact amounts' },
-  { key: 'percent', label: '%',    hint: 'By percentage' },
-  { key: 'shares',  label: '|||',  hint: 'By shares' },
+  { key: 'equal', label: '=', hint: 'Split equally' },
+  { key: 'exact', label: '1.23', hint: 'Exact amounts' },
+  { key: 'percent', label: '%', hint: 'By percentage' },
+  { key: 'shares', label: '|||', hint: 'By shares' },
 ];
 
 export default function Splits() {
@@ -24,11 +24,11 @@ export default function Splits() {
     ? user.preferences.tracked_currencies
     : [user?.preferences?.main_currency || 'USD'];
 
-  const [bills, setBills]       = useState([]);
-  const [summary, setSummary]   = useState(null);
+  const [bills, setBills] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [owedByMe, setOwedByMe] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editBill, setEditBill] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
@@ -64,7 +64,7 @@ export default function Splits() {
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}
 
       {summary && (
-        <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+        <div className="row splits-summary" style={{ gap: 12, flexWrap: 'wrap' }}>
           <div className="card pad-lg" style={{ flex: 1, minWidth: 160 }}>
             <div className="muted text-small">Owed to you</div>
             <div className="num" style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)' }}>{fmt(summary.owed_to_me)}</div>
@@ -110,42 +110,63 @@ export default function Splits() {
 
             return (
               <div key={b.id} style={{ padding: '14px 0', borderTop: i ? '1px solid var(--line)' : 0 }}>
-                <div className="row between center" style={{ gap: 12 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{b.title}</div>
-                    <div className="muted text-small">
-                      {b.currency} {fmt(Number(b.total_amount))} · {b.date?.slice(0, 10)}
-                      {payer && <> · paid by {payer.name}</>}
+                <div className="row between center split-bill-head" style={{ gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>
+                      {b.title}
+                    </div>
+                    <div className="muted text-small" style={{ marginTop: 2 }}>
+                      {b.date?.slice(0, 10)}{payer && <> · paid by {payer.name}</>}
                     </div>
                   </div>
-                  <div className="row center" style={{ gap: 10, flexShrink: 0 }}>
+
+                  <div className="row center split-bill-actions" style={{ gap: 8, flexShrink: 0 }}>
                     <span className="num text-small" style={{ color: outstanding > 0.01 ? 'var(--clay)' : 'var(--green)' }}>
                       {outstanding > 0.01 ? `${fmt(outstanding)} pending` : 'All settled'}
                     </span>
-                    <button className="btn ghost text-small" onClick={() => openEdit(b)}>Edit</button>
-                    <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(b.id)}>Delete</button>
+                    <button className="btn ghost text-small" onClick={() => openEdit(b)}><Icon name="edit" size={14} /></button>
+                    <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(b.id)}><Icon name="trash" size={14} /></button>
                   </div>
                 </div>
-                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {owing.map((p) => {
                     const owes = Number(p.share_amount) - Number(p.paid_amount);
                     return (
-                      <div key={p.id} className="row between center" style={{ fontSize: 13, paddingLeft: 8 }}>
-                        <span className="row center" style={{ gap: 8 }}>
-                          <span className={'chip ' + (p.is_settled ? 'green' : 'gold')}>{p.is_settled ? 'Paid' : 'Owes'}</span>
-                          <span style={{ fontWeight: 600 }}>{p.name}</span>
-                          {p.friend_user_id && <Icon name="user" size={12} />}
+                      <div
+                        key={p.id}
+                        className="split-owe-row"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10
+                        }}
+                      >
+                        <span className={'chip ' + (p.is_settled ? 'green' : 'gold')} style={{ flexShrink: 0 }}>
+                          {p.is_settled ? 'Paid' : 'Owes'}
                         </span>
-                        <span className="row center" style={{ gap: 10 }}>
-                          <span className="mono muted">{b.currency} {fmt(owes)}</span>
-                          <button className="btn ghost text-small" onClick={() => settle(p.id, !p.is_settled)}>
-                            {p.is_settled ? 'Undo' : 'Mark paid'}
-                          </button>
+
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flex: 1 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.name}
+                          </span>
                         </span>
+
+                        <span className="mono" style={{ fontWeight: 700, fontSize: 13.5, flexShrink: 0 }}>
+                          {b.currency} {fmt(owes)}
+                        </span>
+
+                        <button
+                          className={'btn text-small ' + (p.is_settled ? 'ghost' : 'pri')}
+                          style={{ flexShrink: 0, padding: '5px 12px' }}
+                          onClick={() => settle(p.id, !p.is_settled)}
+                        >
+                          {p.is_settled ? 'Undo' : 'Mark paid'}
+                        </button>
                       </div>
                     );
                   })}
-                  {owing.length === 0 && <div className="muted text-small" style={{ paddingLeft: 8 }}>Everyone's even.</div>}
+                  {owing.length === 0 && (
+                    <div className="muted text-small" style={{ paddingLeft: 4 }}>Everyone's even. ✓</div>
+                  )}
                 </div>
               </div>
             );
@@ -158,12 +179,12 @@ export default function Splits() {
           <div className="card-h"><div className="t">You owe</div></div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {owedByMe.map((p, i) => (
-              <div key={p.id} className="row between center" style={{ padding: '12px 0', borderTop: i ? '1px solid var(--line)' : 0, fontSize: 13 }}>
-                <div>
+              <div key={p.id} className="row between center" style={{ padding: '12px 0', borderTop: i ? '1px solid var(--line)' : 0, fontSize: 13, gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0 }}>
                   <span style={{ fontWeight: 600 }}>{p.bill_title}</span>
                   <span className="muted text-small"> · to {p.payer_name} · {p.date}</span>
                 </div>
-                <span className="row center" style={{ gap: 8 }}>
+                <span className="row center" style={{ gap: 8, marginLeft: 'auto' }}>
                   <span className={'chip ' + (p.is_settled ? 'green' : 'clay')}>{p.is_settled ? 'Settled' : 'Unpaid'}</span>
                   <span className="mono">{p.currency} {fmt(p.share)}</span>
                 </span>
@@ -188,10 +209,10 @@ export default function Splits() {
 function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, myUserId, onClose, onSaved, onError }) {
   const isEdit = !!editBill;
 
-  const [title, setTitle]   = useState(editBill?.title || '');
-  const [total, setTotal]   = useState(editBill ? String(editBill.total_amount) : '');
+  const [title, setTitle] = useState(editBill?.title || '');
+  const [total, setTotal] = useState(editBill ? String(editBill.total_amount) : '');
   const [currency, setCurrency] = useState(editBill?.currency || mainCurrency || 'USD');
-  const [date, setDate]     = useState(editBill?.date?.slice(0, 10) || today());
+  const [date, setDate] = useState(editBill?.date?.slice(0, 10) || today());
   const [method, setMethod] = useState(editBill?.split_method || 'equal');
   const [saving, setSaving] = useState(false);
 
@@ -210,8 +231,8 @@ function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, m
     return [{ name: myName, is_me: true, friend_user_id: myUserId, selected: true, exact: '', percent: '', shares: '1' }];
   };
 
-  const [people, setPeople]   = useState(initPeople);
-  const [search, setSearch]   = useState('');
+  const [people, setPeople] = useState(initPeople);
+  const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
 
   const initPayer = () => {
@@ -232,7 +253,7 @@ function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, m
     if (payerIdx === idx) setPayerIdx(0);
     else if (payerIdx > idx) setPayerIdx((x) => x - 1);
   };
-  const setField  = (idx, f, v) => setPeople((p) => p.map((x, i) => (i === idx ? { ...x, [f]: v } : x)));
+  const setField = (idx, f, v) => setPeople((p) => p.map((x, i) => (i === idx ? { ...x, [f]: v } : x)));
   const toggleSel = (idx) => setPeople((p) => p.map((x, i) => (i === idx ? { ...x, selected: !x.selected } : x)));
 
   function computeShares() {
@@ -290,7 +311,7 @@ function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, m
     try {
       const payload = { title, total_amount: t, currency, split_method: method, date, participants };
       if (isEdit) await splitsAPI.update(editBill.id, payload);
-      else        await splitsAPI.create(payload);
+      else await splitsAPI.create(payload);
       onSaved();
     } catch (err) {
       onError((err.errors && Object.values(err.errors)[0]?.[0]) || err.message || 'Could not save the split.');
@@ -341,7 +362,7 @@ function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, m
       {/* SPLIT METHOD + PEOPLE */}
       <div>
         <div className="text-semibold text-small" style={{ marginBottom: 8 }}>Split between</div>
-        <div className="seg" style={{ marginBottom: 10 }}>
+        <div className="seg" style={{ marginBottom: 10, flexWrap: 'wrap' }}>
           {SPLIT_METHODS.map((m) => (
             <button key={m.key} className={method === m.key ? 'on' : ''} onClick={() => setMethod(m.key)} title={m.hint}>{m.label}</button>
           ))}
@@ -350,27 +371,27 @@ function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, m
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {people.map((p, i) => (
-            <div key={i} className="row between center" style={{ gap: 8 }}>
+            <div key={i} className="row between center split-person-row" style={{ gap: 8 }}>
               <span className="row center" style={{ gap: 8, flex: 1, minWidth: 0 }}>
                 <input type="checkbox" checked={p.selected} onChange={() => toggleSel(i)} />
                 <input className="input" value={p.name} disabled={p.is_me}
-                  onChange={(e) => setField(i, 'name', e.target.value)} style={{ flex: 1 }} placeholder="Friend's name" />
+                  onChange={(e) => setField(i, 'name', e.target.value)} style={{ flex: 1, minWidth: 0 }} placeholder="Friend's name" />
               </span>
 
               {p.selected && method === 'exact' && (
-                <input className="input" type="number" min="0" step="0.01" value={p.exact}
+                <input className="input split-amount-input" type="number" min="0" step="0.01" value={p.exact}
                   onChange={(e) => setField(i, 'exact', e.target.value)} style={{ width: 100 }} placeholder="0.00" />
               )}
               {p.selected && method === 'percent' && (
-                <input className="input" type="number" min="0" step="0.1" value={p.percent}
+                <input className="input split-amount-input" type="number" min="0" step="0.1" value={p.percent}
                   onChange={(e) => setField(i, 'percent', e.target.value)} style={{ width: 80 }} placeholder="%" />
               )}
               {p.selected && method === 'shares' && (
-                <input className="input" type="number" min="0" step="1" value={p.shares}
+                <input className="input split-amount-input" type="number" min="0" step="1" value={p.shares}
                   onChange={(e) => setField(i, 'shares', e.target.value)} style={{ width: 70 }} placeholder="parts" />
               )}
 
-              {p.selected && <span className="mono muted text-small" style={{ width: 84, textAlign: 'right' }}>{currency} {fmt(shares[i] || 0)}</span>}
+              {p.selected && <span className="mono muted text-small split-share-preview" style={{ width: 84, textAlign: 'right' }}>{currency} {fmt(shares[i] || 0)}</span>}
 
               {!p.is_me && <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => removePerson(i)}>×</button>}
             </div>
