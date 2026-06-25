@@ -24,6 +24,7 @@ import AdminUsers from './pages/AdminUsers.jsx';
 import Splits from './pages/Splits.jsx';
 import SavingsGoals from './pages/SavingsGoals.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import Transfers from './pages/Transfers.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -87,6 +88,8 @@ export default function App() {
         <Route path="/income" element={<TransactionForm defaultType="income" />} />
         <Route path="/expense" element={<TransactionForm defaultType="expense" />} />
         <Route path="/transactions/:id/edit" element={<TransactionForm mode="edit" />} />
+        <Route path="/transfers" element={<Transfers />} />
+
 
         {/* Admin only */}
         <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
