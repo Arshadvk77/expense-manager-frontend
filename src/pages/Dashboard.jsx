@@ -63,7 +63,7 @@ export default function Dashboard() {
   return (
     <>
       <Topbar title={`Welcome back ${user?.name || ''}`} sub="Here's how your money moved this month.">
-        <button className="btn pri" onClick={() => navigate('/expense')}><Icon name="plus" size={16} /> Add</button>
+        <button className="btn pri tb-hide-sm" onClick={() => navigate('/expense')}><Icon name="plus" size={16} /> Add</button>
       </Topbar>
 
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}

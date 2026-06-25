@@ -130,7 +130,7 @@ export default function Transactions() {
           <Icon name="download" size={15} /> {importing ? 'Importing…' : 'Import'}
         </button>
         <button className="btn" onClick={handleExport}><Icon name="download" size={15} /> Export</button>
-        <button className="btn pri" onClick={() => navigate('/expense')}><Icon name="plus" size={16} /> New</button>
+        <button className="btn pri" onClick={() => navigate('/expense')}><Icon name="plus" size={16} /></button>
       </Topbar>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} style={{ display: 'none' }} />
 

@@ -64,18 +64,21 @@ export default function Splits() {
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}
 
       {summary && (
-        <div className="row splits-summary" style={{ gap: 12, flexWrap: 'wrap' }}>
-          <div className="card pad-lg" style={{ flex: 1, minWidth: 160 }}>
-            <div className="muted text-small">Owed to you</div>
-            <div className="num" style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)' }}>{fmt(summary.owed_to_me)}</div>
+        <div
+          className="khaleej-split-tabs"
+          style={{ display: 'flex', flexWrap: 'nowrap', gap: 8, width: '100%' }}
+        >
+          <div className="khaleej-split-tab card" style={{ flex: '1 1 0', minWidth: 0, padding: '12px 8px', textAlign: 'center' }}>
+            <div className="muted" style={{ fontSize: 11 }}>Owed to you</div>
+            <div className="num" style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)', wordBreak: 'break-word' }}>{fmt(summary.owed_to_me)}</div>
           </div>
-          <div className="card pad-lg" style={{ flex: 1, minWidth: 160 }}>
-            <div className="muted text-small">You owe</div>
-            <div className="num" style={{ fontSize: 24, fontWeight: 800, color: 'var(--clay)' }}>{fmt(summary.i_owe)}</div>
+          <div className="khaleej-split-tab card" style={{ flex: '1 1 0', minWidth: 0, padding: '12px 8px', textAlign: 'center' }}>
+            <div className="muted" style={{ fontSize: 11 }}>You owe</div>
+            <div className="num" style={{ fontSize: 18, fontWeight: 800, color: 'var(--clay)', wordBreak: 'break-word' }}>{fmt(summary.i_owe)}</div>
           </div>
-          <div className="card pad-lg" style={{ flex: 1, minWidth: 160 }}>
-            <div className="muted text-small">Net balance</div>
-            <div className="num" style={{ fontSize: 24, fontWeight: 800, color: summary.net >= 0 ? 'var(--green)' : 'var(--clay)' }}>
+          <div className="khaleej-split-tab card" style={{ flex: '1 1 0', minWidth: 0, padding: '12px 8px', textAlign: 'center' }}>
+            <div className="muted" style={{ fontSize: 11 }}>Net</div>
+            <div className="num" style={{ fontSize: 18, fontWeight: 800, color: summary.net >= 0 ? 'var(--green)' : 'var(--clay)', wordBreak: 'break-word' }}>
               {summary.net >= 0 ? '+' : ''}{fmt(summary.net)}
             </div>
           </div>

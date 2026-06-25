@@ -86,7 +86,7 @@ export default function Reports() {
             <button className={useDisplay ? 'on' : ''} onClick={() => setUseDisplay(true)}>{display}</button>
           </div>
         )}
-        <button className="btn"><Icon name="download" size={15} /> Export PDF</button>
+        <button className="btn tb-hide-sm"><Icon name="download" size={15} />  <span >Export PDF</span></button>
       </Topbar>
 
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}
