@@ -3,11 +3,12 @@ import { Topbar } from '../components/Layout.jsx';
 import { Icon } from '../components/Icon.jsx';
 import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 import { fmt } from '../lib/currency.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useCurrencies } from '../hooks/useCurrencies.js';
 import { recurringAPI } from '../api/recurring';
 import { categoriesAPI } from '../api/categories';
 import '../styles/main.scss';
 
-const CURRENCIES = ['OMR', 'AED', 'SAR', 'QAR', 'USD', 'INR'];
 const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -30,9 +31,17 @@ const freqLabel = (f, n) => {
 };
 
 export default function Recurring() {
+  const { user } = useAuth();
+  const { currencies } = useCurrencies();
+
+  const trackedCodes = user?.preferences?.tracked_currencies?.length
+    ? user.preferences.tracked_currencies
+    : [user?.preferences?.main_currency || 'USD'];
+
   const [rules, setRules]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
+  const [info, setInfo]       = useState('');
 
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving]     = useState(false);
@@ -40,7 +49,9 @@ export default function Recurring() {
   const [categories, setCategories]   = useState([]);
 
   const [form, setForm] = useState({
-    type: 'expense', amount: '', currency: 'OMR', category_id: '',
+    type: 'expense', amount: '',
+    currency: user?.preferences?.display_currency || user?.preferences?.main_currency || 'USD',
+    category_id: '',
     frequency: 'monthly', interval: 1, start_date: today(),
     ends: 'never', end_date: '', max_occurrences: '', source: '', note: '',
   });
@@ -58,6 +69,13 @@ export default function Recurring() {
   }
   useEffect(load, []);
 
+  // sync default currency once user loads (user may be null on first render)
+  useEffect(() => {
+    const pref = user?.preferences?.display_currency || user?.preferences?.main_currency;
+    if (pref) setForm((f) => ({ ...f, currency: pref }));
+  }, [user?.preferences?.display_currency, user?.preferences?.main_currency]);
+
+  // categories for the active type
   useEffect(() => {
     categoriesAPI.list({ type: form.type })
       .then((res) => setCategories((res.categories || []).filter((c) => c.parent_id === null)))
@@ -65,7 +83,7 @@ export default function Recurring() {
   }, [form.type]);
 
   async function create() {
-    setSaving(true); setError(''); setFieldErrors({});
+    setSaving(true); setError(''); setInfo(''); setFieldErrors({});
     try {
       const payload = {
         type: form.type,
@@ -83,10 +101,20 @@ export default function Recurring() {
       };
       if (!(payload.amount > 0)) { setFieldErrors({ amount: 'Enter an amount.' }); setSaving(false); return; }
 
-      await recurringAPI.create(payload);
+      const res = await recurringAPI.create(payload);
       setShowForm(false);
       setForm((f) => ({ ...f, amount: '', source: '', note: '', max_occurrences: '', end_date: '' }));
-      load();
+
+      if (res.message) setInfo(res.message);
+
+      // if the backend is backfilling past transactions in the background,
+      // reload now (to show the rule) then again shortly (to catch backfilled history)
+      if (res.backfilling) {
+        load();
+        setTimeout(load, 2500);
+      } else {
+        load();
+      }
     } catch (err) {
       if (err.errors) setFieldErrors(Object.fromEntries(Object.entries(err.errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])));
       setError(err.message || 'Could not create the recurring payment.');
@@ -126,6 +154,12 @@ export default function Recurring() {
       </Topbar>
 
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}
+      {info && (
+        <div className="card" style={{ borderColor: 'var(--green)', color: 'var(--green)', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span>{info}</span>
+          <button className="btn ghost text-small" onClick={() => setInfo('')}>Dismiss</button>
+        </div>
+      )}
 
       {showForm && (
         <div className="card pad-lg" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -146,7 +180,10 @@ export default function Recurring() {
             <div className="field">
               <label>Currency</label>
               <select className="input" value={form.currency} onChange={set('currency')}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {trackedCodes.map((c) => <option key={c} value={c}>{c}</option>)}
+                {currencies
+                  .filter((c) => !trackedCodes.includes(c.code))
+                  .map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
               </select>
             </div>
             <div className="field">
@@ -255,7 +292,7 @@ export default function Recurring() {
                     {income ? '+' : '−'}{r.currency} {fmt(Number(r.amount))}
                   </span>
                   <button className="btn ghost text-small" onClick={() => toggleActive(r)}>{r.is_active ? 'Pause' : 'Resume'}</button>
-                  <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(r.id)}><Icon name="trash" size={16}  /></button>
+                  <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(r.id)}><Icon name="trash" size={16} /></button>
                 </div>
               </div>
             );
