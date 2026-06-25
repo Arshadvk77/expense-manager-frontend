@@ -166,8 +166,8 @@ function BottomNav() {
       <button className={'bn-item ' + (on('home') ? 'on' : '')} onClick={() => navigate(ROUTE.home)}>
         <Icon name="grid" /><span>Home</span>
       </button>
-      <button className={'bn-item ' + (on('reports') ? 'on' : '')} onClick={() => navigate(ROUTE.reports)}>
-        <Icon name="chart" /><span>Reports</span>
+      <button className={'bn-item ' + (on('reports') ? 'on' : '')} onClick={() => navigate(ROUTE.recurring)}>
+        <Icon name="convert" /><span>Recurring</span>
       </button>
       <button className="bn-item" onClick={() => navigate(ROUTE.expense)} aria-label="Add expense">
         <span className="bn-add"><Icon name="plus" /></span>
@@ -217,7 +217,10 @@ export function Topbar({ title, sub, children }) {
           <div className="hi">{title}</div>
           {sub && <div className="sub">{sub}</div>}
         </div>
-        <div className='tb-hide-md'>
+        <div className='tb-hide-md' style={{display:'flex' , gap:12}}>
+          <button className='bn-item' onClick={() => navigate(ROUTE.reports)}>
+           <Icon name="chart" /><span>Reports</span>
+          </button>
           <button className='bn-item' onClick={() => navigate('/settings')}>
             <Icon name="gear" /><span>Settings</span>
           </button>
