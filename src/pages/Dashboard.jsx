@@ -9,7 +9,7 @@ import { SavingsPlans } from '../components/SavingsPlans.jsx';
 import { dashboardAPI } from '../api/dashboard';
 import { splitsAPI } from '../api/splits';
 
-const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch { return d; } };
+const fmtDate = (d) => { try { return new Date((d || '').slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch { return d; } };
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -79,7 +79,7 @@ export default function Dashboard() {
                   <span className={'ic ' + s.ic}><Icon name={s.icon} size={18} /></span>
                   <div className="lbl">{s.lbl}</div>
                 </div>
-                <div style={{ marginTop: 2  , paddingLeft:'20px'}}>
+                <div style={{ marginTop: 2, paddingLeft: '20px' }}>
                   <div style={{ minWidth: 0 }}>
                     <div className="val num">{sym} {fmt(toDisplay(s.val))}</div>
                     {differ && showHome && (
@@ -88,7 +88,6 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-                  {/* <Sparkline className="spark" data={s.spark.length ? s.spark : [0, 0]} color={s.color} /> */}
                 </div>
               </div>
             ))}
@@ -102,6 +101,7 @@ export default function Dashboard() {
                 {wallets.map((w) => {
                   const wsym = SYMBOL[w.currency] || w.currency;
                   const positive = w.balance >= 0;
+                  const hasTransfers = Number(w.transferred_in) > 0 || Number(w.transferred_out) > 0;
                   return (
                     <div key={w.currency} className="card wallet-card" style={{ flex: '1 1 150px', minWidth: 150, padding: 14 }}>
                       <div className="row center" style={{ gap: 8 }}>
@@ -111,8 +111,14 @@ export default function Dashboard() {
                         {positive ? '' : '−'}{wsym} {fmt(Math.abs(w.balance))}
                       </div>
                       <div className="muted text-small" style={{ marginTop: 2 }}>
-                        +{fmt(w.income)} · −{fmt(w.expense)}
+                        +{fmt(w.income)} in · −{fmt(w.expense)} out
                       </div>
+                      {hasTransfers && (
+                        <div className="muted text-small" style={{ marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {Number(w.transferred_in) > 0 && <span style={{ color: 'var(--green)' }}>↘ {fmt(Number(w.transferred_in))} in</span>}
+                          {Number(w.transferred_out) > 0 && <span style={{ color: 'var(--clay)' }}>↗ {fmt(Number(w.transferred_out))} out</span>}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
