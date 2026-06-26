@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [splitSummary, setSplitSummary] = useState(null);
+  const [splitView, setSplitView] = useState('expense'); // 'expense' | 'income'
 
   useEffect(() => {
     dashboardAPI.summary()
@@ -57,7 +58,12 @@ export default function Dashboard() {
     { ic: 'gold',  icon: 'send',   lbl: topCat ? `Top: ${topCat.name}` : 'Top category', val: topCat?.total || 0, spark: trend.map((m) => m.net), color: 'var(--gold)' },
   ];
 
-  const split = (data?.by_category || []).map((c) => ({ name: c.name, v: c.total, color: c.color || 'var(--wine)' }));
+  // donut data depends on the toggle
+  const isIncomeView = splitView === 'income';
+  const splitSource = isIncomeView ? (data?.income_by_category || []) : (data?.by_category || []);
+  const split = splitSource.map((c) => ({ name: c.name, v: c.total, color: c.color || (isIncomeView ? 'var(--green)' : 'var(--wine)') }));
+  const splitTotal = isIncomeView ? t.income : t.expense;
+
   const nets = trend.map((m) => m.net);
 
   return (
@@ -156,13 +162,26 @@ export default function Dashboard() {
             </div>
 
             <div className="card pad-lg">
-              <div className="card-h"><div className="t">Spending split</div></div>
+              <div className="card-h">
+                <div className="t">{isIncomeView ? 'Income split' : 'Spending split'}</div>
+                <div className="seg">
+                  <button className={splitView === 'expense' ? 'on' : ''} onClick={() => setSplitView('expense')}>Expense</button>
+                  <button className={splitView === 'income' ? 'on' : ''} onClick={() => setSplitView('income')}>Income</button>
+                </div>
+              </div>
               {split.length === 0 ? (
-                <div className="muted text-small" style={{ padding: '20px 0' }}>No expenses this month.</div>
+                <div className="muted text-small" style={{ padding: '20px 0' }}>
+                  {isIncomeView ? 'No income this month.' : 'No expenses this month.'}
+                </div>
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}>
-                    <Donut data={split.map((s) => ({ ...s, v: toDisplay(s.v) }))} size={176} stroke={24} center1={`${sym} ${fmt(toDisplay(t.expense))}`} center2="THIS MONTH" />
+                    <Donut
+                      data={split.map((s) => ({ ...s, v: toDisplay(s.v) }))}
+                      size={176} stroke={24}
+                      center1={`${sym} ${fmt(toDisplay(splitTotal))}`}
+                      center2={isIncomeView ? 'INCOME' : 'THIS MONTH'}
+                    />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                     {split.map((s, i) => (

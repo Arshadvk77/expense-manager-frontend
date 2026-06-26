@@ -33,6 +33,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [useDisplay, setUseDisplay] = useState(false); // false = home currency, true = display currency
+  const [catView, setCatView] = useState('expense');   // 'expense' | 'income'
 
   useEffect(() => {
     setLoading(true); setError('');
@@ -62,7 +63,10 @@ export default function Reports() {
   const months = (data?.trend || []).map((t) => t.month);
   const savings = (data?.savings_cumulative || []).map((s) => conv(s.value));
 
-  const byCategory = (data?.by_category || []).map((c, i) => ({
+  // category donut depends on the toggle
+  const isIncomeCat = catView === 'income';
+  const catSource = isIncomeCat ? (data?.income_by_category || []) : (data?.by_category || []);
+  const byCategory = catSource.map((c, i) => ({
     name: c.name,
     v: conv(c.value),
     color: c.color || CAT_COLORS[i % CAT_COLORS.length],
@@ -129,9 +133,20 @@ export default function Reports() {
             </div>
 
             <div className="card pad-lg">
-              <div className="card-h"><div className="t">By category</div><span className="chip">{period}</span></div>
+              <div className="card-h">
+                <div className="t">By category</div>
+                <div className="seg">
+                  <button className={catView === 'expense' ? 'on' : ''} onClick={() => setCatView('expense')}>Expense</button>
+                  <button className={catView === 'income' ? 'on' : ''} onClick={() => setCatView('income')}>Income</button>
+                </div>
+              </div>
               <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}>
-                <Donut data={byCategory} size={170} stroke={22} center1={`${cur} ${compact(categoryTotal)}`} center2="SPENT" />
+                <Donut
+                  data={byCategory}
+                  size={170} stroke={22}
+                  center1={`${cur} ${compact(categoryTotal)}`}
+                  center2={isIncomeCat ? 'EARNED' : 'SPENT'}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
                 {byCategory.map((s, i) => (
@@ -143,7 +158,9 @@ export default function Reports() {
                     <span className="mono muted" style={{ flexShrink: 0 }}>{cur} {fmt(s.v)}</span>
                   </div>
                 ))}
-                {byCategory.length === 0 && <div className="muted text-small">No expenses in this period.</div>}
+                {byCategory.length === 0 && (
+                  <div className="muted text-small">{isIncomeCat ? 'No income in this period.' : 'No expenses in this period.'}</div>
+                )}
               </div>
             </div>
           </div>
