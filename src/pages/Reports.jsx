@@ -86,7 +86,7 @@ export default function Reports() {
             <button className={useDisplay ? 'on' : ''} onClick={() => setUseDisplay(true)}>{display}</button>
           </div>
         )}
-        <button className="btn tb-hide-sm"><Icon name="download" size={15} />  <span >Export PDF</span></button>
+        <button className="btn tb-hide-sm"><Icon name="download" size={15} /> <span>Export PDF</span></button>
       </Topbar>
 
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}
@@ -133,14 +133,14 @@ export default function Reports() {
               <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}>
                 <Donut data={byCategory} size={170} stroke={22} center1={`${cur} ${compact(categoryTotal)}`} center2="SPENT" />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {byCategory.slice(0, 4).map((s, i) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+                {byCategory.map((s, i) => (
                   <div key={i} className="row between center" style={{ fontSize: 12.5 }}>
-                    <span className="row center" style={{ gap: 8 }}>
-                      <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color }} />
-                      <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>{s.name}</span>
+                    <span className="row center" style={{ gap: 8, minWidth: 0 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
                     </span>
-                    <span className="mono muted">{cur} {fmt(s.v)}</span>
+                    <span className="mono muted" style={{ flexShrink: 0 }}>{cur} {fmt(s.v)}</span>
                   </div>
                 ))}
                 {byCategory.length === 0 && <div className="muted text-small">No expenses in this period.</div>}
@@ -148,7 +148,7 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* By currency — always original amounts */}
+          {/* By currency — always original amounts, now with transfers */}
           <div className="card pad-lg">
             <div className="card-h">
               <div>
@@ -158,19 +158,20 @@ export default function Reports() {
               <span className="chip">{byCurrency.length} {byCurrency.length === 1 ? 'currency' : 'currencies'}</span>
             </div>
 
-            {byCurrency.length === 0 && <div className="muted text-small">No transactions in this period.</div>}
+            {byCurrency.length === 0 && <div className="muted text-small">No activity in this period.</div>}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
               {byCurrency.map((c) => {
                 const widthPct = Math.max(2, (c.expense_main / maxCurrencySpend) * 100);
+                const hasTransfers = Number(c.transferred_out) > 0 || Number(c.transferred_in) > 0;
                 return (
                   <div key={c.currency}>
-                    <div className="row between center" style={{ marginBottom: 6 }}>
+                    <div className="row between center" style={{ marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
                       <div className="row center" style={{ gap: 10 }}>
                         <span className="chip wine mono">{c.currency}</span>
                         <span className="muted text-small">{c.count} txn{c.count === 1 ? '' : 's'}</span>
                       </div>
-                      <div className="row center" style={{ gap: 14, fontSize: 13 }}>
+                      <div className="row center" style={{ gap: 14, fontSize: 13, flexWrap: 'wrap' }}>
                         {c.income > 0 && (
                           <span><span className="muted text-small">in </span><span className="num" style={{ color: 'var(--green)', fontWeight: 700 }}>{fmt(c.income)}</span></span>
                         )}
@@ -182,6 +183,15 @@ export default function Reports() {
                     <div style={{ height: 8, background: 'var(--line)', borderRadius: 999, overflow: 'hidden' }}>
                       <div style={{ width: `${widthPct}%`, height: '100%', background: 'var(--wine)', borderRadius: 999 }} />
                     </div>
+
+                    {/* transfer line — informational, separate from income/expense */}
+                    {hasTransfers && (
+                      <div className="muted text-small" style={{ marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        {Number(c.transferred_in) > 0 && <span>↘ transferred in {fmt(Number(c.transferred_in))} {c.currency}</span>}
+                        {Number(c.transferred_out) > 0 && <span>↗ transferred out {fmt(Number(c.transferred_out))} {c.currency}</span>}
+                      </div>
+                    )}
+
                     {c.currency !== main && c.expense_main > 0 && (
                       <div className="muted text-small" style={{ marginTop: 4 }}>
                         ≈ {main} {fmt(c.expense_main)} spent
