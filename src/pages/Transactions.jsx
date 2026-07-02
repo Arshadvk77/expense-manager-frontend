@@ -6,6 +6,7 @@ import { fmt } from '../lib/currency.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 import { transactionsAPI, downloadBlob } from '../api/transactions';
 import { transfersAPI } from '../api/transfers';
+import { categoriesAPI } from '../api/categories';
 import '../styles/main.scss';
 
 const FILTERS = ['All', 'Income', 'Expense', 'Transfer'];
@@ -22,6 +23,8 @@ export default function Transactions() {
   const navigate = useNavigate();
 
   const [filter, setFilter] = useState('All');
+  const [categoryId, setCategoryId] = useState(''); // '' = all categories
+  const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -41,6 +44,18 @@ export default function Transactions() {
 
   const isTransferTab = filter === 'Transfer';
 
+  // load all categories once (income + expense) for the dropdown
+  useEffect(() => {
+    Promise.all([
+      categoriesAPI.list({ type: 'expense' }).catch(() => ({ categories: [] })),
+      categoriesAPI.list({ type: 'income' }).catch(() => ({ categories: [] })),
+    ]).then(([exp, inc]) => {
+      const all = [...(exp.categories || []), ...(inc.categories || [])]
+        .filter((c) => c.parent_id === null);
+      setCategories(all);
+    });
+  }, []);
+
   const load = useCallback(async (p = 1) => {
     setLoading(true);
     setError('');
@@ -51,6 +66,7 @@ export default function Transactions() {
       } else {
         const params = { per_page: 20, page: p };
         if (filter !== 'All') params.type = filter.toLowerCase();
+        if (categoryId) params.category_id = categoryId;
 
         const res = await transactionsAPI.list(params);
         const paginator = res.transactions || {};
@@ -66,9 +82,14 @@ export default function Transactions() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, categoryId]);
 
   useEffect(() => { load(1); }, [load]);
+
+  // if the user switches to the Transfer tab, clear the category filter (transfers have none)
+  useEffect(() => {
+    if (isTransferTab && categoryId) setCategoryId('');
+  }, [isTransferTab]); // eslint-disable-line
 
   async function confirmDelete() {
     const id = confirmId;
@@ -158,6 +179,8 @@ export default function Transactions() {
     }
   }
 
+  const activeCategory = categories.find((c) => String(c.id) === String(categoryId));
+
   return (
     <>
       <Topbar title="Transactions" sub="Every currency, in one place.">
@@ -172,7 +195,7 @@ export default function Transactions() {
 
       {/* Filter bar */}
       <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
-        <div className="card row center" style={{ flex: 1, minWidth: 240, gap: 10, padding: '10px 14px' }}>
+        <div className="card row center" style={{ flex: 1, minWidth: 220, gap: 10, padding: '10px 14px' }}>
           <Icon name="search" size={16} />
           <input
             value={search}
@@ -181,12 +204,45 @@ export default function Transactions() {
             placeholder="Search merchant, note or amount"
           />
         </div>
+
+        {/* category dropdown — hidden on the Transfer tab */}
+        {!isTransferTab && (
+          <div className="card row center" style={{ gap: 8, padding: '8px 12px', minWidth: 150 }}>
+            <Icon name="filter" size={15} />
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              style={{ border: 0, background: 'transparent', outline: 'none', flex: 1, fontFamily: 'inherit', fontSize: 13.5, color: 'var(--ink)', cursor: 'pointer' }}
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="seg">
           {FILTERS.map((t) => (
             <button key={t} className={filter === t ? 'on' : ''} onClick={() => setFilter(t)}>{t}</button>
           ))}
         </div>
       </div>
+
+      {/* active category chip (quick clear) */}
+      {!isTransferTab && activeCategory && (
+        <div className="row center" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <span className="muted text-small">Filtered by:</span>
+          <span className="chip wine" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {activeCategory.name}
+            <button
+              onClick={() => setCategoryId('')}
+              style={{ border: 0, background: 'transparent', cursor: 'pointer', color: 'inherit', fontWeight: 700, lineHeight: 1, padding: 0 }}
+              aria-label="Clear category filter"
+            >×</button>
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>
@@ -264,7 +320,9 @@ export default function Transactions() {
               )}
 
               {!loading && visible.length === 0 && (
-                <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 24 }}>No transactions yet.</td></tr>
+                <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 24 }}>
+                  {activeCategory ? `No transactions in "${activeCategory.name}".` : 'No transactions yet.'}
+                </td></tr>
               )}
 
               {!loading && visible.map((t) => {
