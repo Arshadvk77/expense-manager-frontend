@@ -2024,7 +2024,7 @@ button {
     padding: 10px 12px !important;
   }
   .wallet-card .num {
-    font-size: 16px !important;
+    font-size: 12px !important;
     margin-top: 4px !important;
     word-break: break-word;
   }
@@ -2033,5 +2033,218 @@ button {
   }
   .wallet-card .text-small {
     font-size: 10px !important;
+  }
+}
+
+
+/* ── Wallet cards: base (desktop) ── */
+.wallet-card {
+  padding: 14px;
+}
+
+.wallet-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.wallet-card__ccy {
+  display: none; /* desktop keeps the original compact look */
+}
+
+.wallet-card__bal {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.wallet-card__chevron {
+  display: none;
+}
+
+.wallet-card__details {
+  display: block;
+}
+
+/* ── Mobile: 2-up grid, tap to expand ── */
+@media (max-width: 640px) {
+  .wallet-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 8px !important;
+  }
+
+  .wallet-card {
+    flex: unset !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border-radius: var(--r) !important;
+  }
+
+  .wallet-card__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 11px 12px;
+    cursor: pointer;
+  }
+
+  .wallet-card__head:active {
+    background: var(--bg-2);
+  }
+
+  .wallet-card__main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .wallet-card__ccy {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--muted);
+    letter-spacing: .05em;
+  }
+
+  .wallet-card__bal {
+    font-size: 15px !important;
+    margin-top: 0;
+    word-break: break-word;
+  }
+
+  .wallet-card__chevron {
+    display: block;
+    align-self: flex-end;
+    margin-top: -18px;
+    color: var(--muted);
+    transition: transform .2s ease;
+  }
+
+  .wallet-card.open .wallet-card__chevron {
+    transform: rotate(180deg);
+    color: var(--wine);
+  }
+
+  .wallet-card__details {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 12px;
+    transition: max-height .25s ease, padding .25s ease;
+  }
+
+  .wallet-card.open .wallet-card__details {
+    max-height: 140px;
+    padding: 0 12px 11px;
+  }
+
+  .wallet-card__details .text-small {
+    font-size: 10.5px !important;
+    line-height: 1.5;
+  }
+}
+/* ── Dashboard filter bar ── */
+.filter-bar-dash {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.filter-bar-dash__dates {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-bar-dash__custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-bar-dash__custom .input {
+  width: auto;
+  padding: 8px 10px;
+  font-size: 12.5px;
+}
+
+.filter-bar-dash__currencies {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.currency-chip {
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font-family: var(--mono);
+}
+
+.currency-chip.active {
+  background: var(--wine);
+  color: #fff;
+}
+
+/* ── Stacked per-currency blocks (All view) ── */
+.currency-breakdown-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.currency-block__head {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: var(--wine);
+  background: var(--wine-tint);
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 920px) {
+  .filter-bar-dash {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-bar-dash__dates {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-bar-dash__custom .input {
+    flex: 1;
+  }
+  .filter-bar-dash__currencies {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .currency-chip {
+    flex-shrink: 0;
+  }
+  .currency-block {
+    padding: 16px !important;
   }
 }
