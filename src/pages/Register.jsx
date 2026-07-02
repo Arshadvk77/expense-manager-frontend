@@ -1,16 +1,19 @@
 // src/pages/Register.jsx (Simplified)
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useForm } from '../hooks/useForm';
 import { Alert } from '../components/Alert';
 import '../styles/main.scss';
+import { Icon } from '../components/Icon';
 
 export default function Register() {
   const navigate = useNavigate();
   const { register, error: authError, setError: setAuthError } = useAuth();
   const [alert, setAlert] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const initialValues = {
     name: '',
@@ -22,10 +25,10 @@ export default function Register() {
   const handleRegister = async (values) => {
     setIsLoading(true);
     setAlert(null);
-    
+
     try {
       const result = await register(values);
-      
+
       if (result.success) {
         // Navigate to currency setup instead of dashboard
         navigate('/setup/currency');
@@ -50,7 +53,7 @@ export default function Register() {
   return (
     <>
       {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
-      
+
       <div className="auth-wrap">
         <div className="auth-brand">
           <div className="auth-brand__orb auth-brand__orb--1" />
@@ -121,18 +124,30 @@ export default function Register() {
             </div>
 
             {/* Password Field */}
+            {/* Password Field */}
             <div className="form-field">
               <label>Password *</label>
-              <input
-                type="password"
-                name="password"
-                className={`form-input ${touched.password && errors.password ? 'form-input--error' : ''}`}
-                value={values.password}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Create a strong password"
-                disabled={isSubmitting || isLoading}
-              />
+              <div className="password-wrap">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  className={`form-input ${touched.password && errors.password ? 'form-input--error' : ''}`}
+                  value={values.password}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Create a strong password"
+                  disabled={isSubmitting || isLoading}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  <Icon name={showPassword ? 'eye-off' : 'eye'} size={18} />
+                </button>
+              </div>
               {touched.password && errors.password && (
                 <div className="form-field__error">{errors.password}</div>
               )}
@@ -141,16 +156,28 @@ export default function Register() {
             {/* Confirm Password Field */}
             <div className="form-field">
               <label>Confirm password *</label>
-              <input
-                type="password"
-                name="password_confirmation"
-                className={`form-input ${touched.password_confirmation && errors.password_confirmation ? 'form-input--error' : ''}`}
-                value={values.password_confirmation}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Confirm your password"
-                disabled={isSubmitting || isLoading}
-              />
+              <div className="password-wrap">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  name="password_confirmation"
+                  className={`form-input ${touched.password_confirmation && errors.password_confirmation ? 'form-input--error' : ''}`}
+                  value={values.password_confirmation}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Confirm your password"
+                  disabled={isSubmitting || isLoading}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  <Icon name={showConfirm ? 'eye-off' : 'eye'} size={18} />
+
+                </button>
+              </div>
               {touched.password_confirmation && errors.password_confirmation && (
                 <div className="form-field__error">{errors.password_confirmation}</div>
               )}
@@ -174,7 +201,7 @@ export default function Register() {
 
             <div className="auth-form__footer">
               Already have an account?{' '}
-              <a onClick={() => navigate('/')} className="auth-form__link">
+              <a onClick={() => navigate('/login')} className="auth-form__link">
                 Sign in
               </a>
             </div>

@@ -333,3 +333,39 @@
     flex-direction: column;
   }
 }
+
+.splits-summary {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+.splits-summary-card {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .splits-summary {
+    gap: 6px;
+  }
+  .splits-summary-card {
+    padding: 10px 8px !important;
+    text-align: center;
+  }
+  .splits-summary-card .text-small {
+    font-size: 10px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .splits-summary-card .num {
+    font-size: 15px !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .khaleej-split-tab { padding: 20px !important; }
+  .khaleej-split-tab .num { font-size: 24px !important; }
+  .khaleej-split-tab .muted { font-size: 13px !important; }
+}
+

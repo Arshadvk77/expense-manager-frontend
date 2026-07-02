@@ -3,21 +3,48 @@ export const API_ENDPOINTS = {
     REGISTER: '/register',
     LOGIN: '/login',
     LOGOUT: '/logout',
-    ME: '/me',
+    ME: '/user',
     FORGOT_PASSWORD: '/forgot-password',
     RESET_PASSWORD: '/reset-password',
   },
   USER: {
-    PROFILE: '/profile',
-    UPDATE_PROFILE: '/profile/update',
-    CHANGE_PASSWORD: '/change-password',
+    PROFILE: '/user/profile',
+    PASSWORD: '/user/password',
+    PREFERENCES: '/user/preferences',
+    CURRENCIES: '/user/currencies',
+    DELETE: '/user',
+    DISPLAY_CURRENCY: '/user/display-currency',
+    DISPLAY_VALUE: '/user/display-value',
+
   },
   TRANSACTIONS: {
     BASE: '/transactions',
     EXPORT: '/transactions/export',
+    IMPORT: '/transactions/import',
+    IMPORT_TEMPLATE: '/transactions/import/template',
+    RATE: '/transactions/rate',
+  },
+  CATEGORIES: {
+    BASE: '/categories',
   },
   CURRENCY: {
-    RATES: '/currency/rates',
-    CONVERT: '/currency/convert',
+    LIST: '/currencies',
+    RATES: '/currencies/rates',
+    CONVERT: '/currencies/convert',
   },
+  DASHBOARD: { SUMMARY: '/dashboard/summary' },
+  REPORTS: { SUMMARY: '/reports/summary' },
+  SAVINGS: { BASE: '/savings-plans', SUGGESTED: '/savings-plans/suggested' },
+  CONTACT: { BASE: '/contact' },
+
+  RECURRING: { BASE: '/recurring' },
+  SPLITS: { BASE: '/splits', SEARCH_USERS: '/splits/search-users' },
+
+  ADMIN: {
+    DASHBOARD: '/admin/dashboard',
+    CONTACT_MESSAGES: '/admin/contact-messages',
+    STATS: '/admin/stats',
+    USERS: '/admin/users',
+  },
+
 };

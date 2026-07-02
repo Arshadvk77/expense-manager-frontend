@@ -3,18 +3,28 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useApp } from './context.jsx';
 import { useAuth } from './hooks/useAuth';  // ✅ import useAuth
 import Layout from './components/Layout.jsx';
-
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import AddIncome from './pages/AddIncome.jsx';
-import AddExpense from './pages/AddExpense.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Reports from './pages/Reports.jsx';
-import Convert from './pages/Convert.jsx';
 import Settings from './pages/Settings.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import CurrencySetup from './pages/Setup/CurrencySetup.jsx';
+import Landing from './pages/Landing.jsx';
+import Pricing from './pages/Pricing.jsx';
+import About from './pages/About.jsx';
+import Contact from './pages/Contact.jsx';
+import Terms from './pages/Terms.jsx';
+import Privacy from './pages/Privacy.jsx';
+import AdminContactMessages from './pages/AdminContactMessages.jsx';
+import Recurring from './pages/Recurring.jsx';
+import TransactionForm from './pages/TransactionForm.jsx';
+import AdminUsers from './pages/AdminUsers.jsx';
+import Splits from './pages/Splits.jsx';
+import SavingsGoals from './pages/SavingsGoals.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import Transfers from './pages/Transfers.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -30,6 +40,21 @@ function GuestRoute({ children }) {
   return children;
 }
 
+function RequireAdmin({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user?.is_admin) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+function RequireSetup({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null; // wait for auth to resolve before deciding
+  if (!user) return <Navigate to="/" replace />;
+  if (!user.preferences?.main_currency) return <Navigate to="/setup/currency" replace />;
+  return children;
+}
+
 export default function App() {
   const { dark } = useApp();
 
@@ -40,20 +65,36 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
       <Route path="/forgot" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
 
       <Route path="/setup/currency" element={<ProtectedRoute><CurrencySetup /></ProtectedRoute>} />
 
-      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route element={<ProtectedRoute><RequireSetup><Layout /></RequireSetup></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/income" element={<AddIncome />} />
-        <Route path="/expense" element={<AddExpense />} />
-        <Route path="/transactions" element={<Transactions />} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/convert" element={<Convert />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/recurring" element={<Recurring />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/splits" element={<Splits />} />
+        <Route path="/savings" element={<SavingsGoals />} />
+        <Route path="/income" element={<TransactionForm defaultType="income" />} />
+        <Route path="/expense" element={<TransactionForm defaultType="expense" />} />
+        <Route path="/transactions/:id/edit" element={<TransactionForm mode="edit" />} />
+        <Route path="/transfers" element={<Transfers />} />
+
+
+        {/* Admin only */}
+        <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
+        <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
+        <Route path="/admin/contact-messages" element={<RequireAdmin><AdminContactMessages /></RequireAdmin>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

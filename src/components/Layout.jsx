@@ -1,43 +1,75 @@
-import { useNavigate, useLocation, Outlet, useOutletContext } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, useOutletContext, Link } from 'react-router-dom';
 import { Icon } from './Icon.jsx';
 import { useApp } from '../context.jsx';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useState } from 'react';
+import { Toggle } from './Toggle.jsx';
+import { UserMenu } from './SiteChrome.jsx';
 
-const ROUTE = { home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions', reports: '/reports', convert: '/convert', settings: '/settings' };
+const ROUTE = {
+  home: '/dashboard', income: '/income', expense: '/expense', tx: '/transactions',
+  reports: '/reports', settings: '/settings',
+  recurring: '/recurring',
+  splits: '/splits',
+  savings: '/savings',
+  adminHome: '/admin',
+  adminUsers: '/admin/users',
+  adminContact: '/admin/contact-messages',
+};
 
 function Sidebar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { ccy, setCcy } = useApp();
+  const { ccy, setCcy, dark, setDark } = useApp(); // ← dark/setDark from useApp, not usePage
+
   const { logout, user } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const groups = [
-    { label: 'Overview', items: [
-      { id: 'home', label: 'Dashboard', icon: 'grid' },
-      { id: 'reports', label: 'Reports', icon: 'chart' },
-      { id: 'tx', label: 'Transactions', icon: 'list', tag: '48' },
-    ]},
-    { label: 'Money', items: [
-      { id: 'income', label: 'Add income', icon: 'in' },
-      { id: 'expense', label: 'Add expense', icon: 'out' },
-      { id: 'convert', label: 'Convert to INR', icon: 'convert' },
-    ]},
-    { label: 'Account', items: [
-      { id: 'settings', label: 'Settings', icon: 'gear' },
-    ]},
+    {
+      label: 'Overview', items: [
+        { id: 'home', label: 'Dashboard', icon: 'grid' },
+        { id: 'reports', label: 'Reports', icon: 'chart' },
+        {
+          id: 'tx', label: 'Transactions', icon: 'list',
+          //  tag: '48' 
+        },
+        { id: 'savings', label: 'Savings goals', icon: 'target' }
+      ]
+    },
+    {
+      label: 'Money', items: [
+        { id: 'expense', label: 'Add transaction', icon: 'wallet' },
+        { id: 'splits', label: 'Split expense', icon: 'share' },
+        { id: 'recurring', label: 'Recurring', icon: 'convert' },
+      ]
+    },
+    {
+      label: 'Account', items: [
+        { id: 'settings', label: 'Settings', icon: 'gear' },
+      ]
+    },
   ];
-  
+
+  if (user?.is_admin) {
+    groups.push({
+      label: 'Admin',
+      items: [
+        { id: 'adminHome', label: 'Overview', icon: 'grid' },
+        { id: 'adminUsers', label: 'Users', icon: 'users' },
+        { id: 'adminContact', label: 'Messages', icon: 'mail' },
+      ],
+    });
+  }
+
   const on = id => pathname === ROUTE[id];
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
-    
+
     setIsLoggingOut(true);
     try {
       await logout();
-      // Navigation happens inside logout function
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
@@ -45,22 +77,19 @@ function Sidebar() {
     }
   };
 
-  // Get user initial for avatar
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'R';
 
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <div className="mk">K</div>
-        <div className="nm">Khaleej<small>Gulf · India</small></div>
-      </div>
+      <Link to="/">
+        <div className="brand">
+          <div className="mk">K</div>
+          <div className="nm">Khaleej<small>Gulf · India</small></div>
+        </div>
+      </Link>
 
-      <div className="s-search">
-        <Icon name="search" size={15} />
-        <input placeholder="Search" />
-      </div>
 
-      <div style={{ flex: '0 0 auto', overflowY: 'auto' }}>
+      <div className="s-nav-scroll">
         {groups.map(g => (
           <div key={g.label}>
             <div className="s-label">{g.label}</div>
@@ -73,26 +102,13 @@ function Sidebar() {
             ))}
           </div>
         ))}
-
-        <div className="s-label">Primary currency</div>
-        <div style={{ display: 'flex', gap: 6, padding: '2px 10px 6px', flexWrap: 'wrap' }}>
-          {['AED', 'OMR', 'SAR', 'QAR'].map(c => (
-            <button key={c} onClick={() => setCcy(c)} style={{
-              flex: '1 0 40%', padding: '7px 0', borderRadius: 10, cursor: 'pointer',
-              border: '1px solid ' + (ccy === c ? 'var(--wine)' : 'var(--line)'),
-              background: ccy === c ? 'var(--wine-tint)' : 'transparent',
-              color: ccy === c ? 'var(--wine)' : 'var(--muted)',
-              fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700,
-            }}>{c}</button>
-          ))}
-        </div>
       </div>
 
-      <div className="s-card">
+      {/* <div className="s-card">
         <div className="t">Savings goal</div>
         <div className="d">62% to your ₹5.8L target this quarter.</div>
         <button className="b" onClick={() => navigate('/reports')}>View progress</button>
-      </div>
+      </div> */}
 
       <div className="s-user">
         <div className="av">{userInitial}</div>
@@ -100,11 +116,11 @@ function Sidebar() {
           <div className="nm">{user?.name || 'Rashid Ahmed'}</div>
           <div className="sub">Dubai · {ccy}</div>
         </div>
-        <button 
-          onClick={handleLogout} 
+        <button
+          onClick={handleLogout}
           disabled={isLoggingOut}
-          style={{ 
-            color: 'var(--muted)', 
+          style={{
+            color: 'var(--muted)',
             cursor: isLoggingOut ? 'not-allowed' : 'pointer',
             background: 'none',
             border: 'none',
@@ -144,14 +160,14 @@ function BottomNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const on = id => pathname === ROUTE[id];
-  
+
   return (
     <nav className="bottom-nav">
       <button className={'bn-item ' + (on('home') ? 'on' : '')} onClick={() => navigate(ROUTE.home)}>
         <Icon name="grid" /><span>Home</span>
       </button>
-      <button className={'bn-item ' + (on('reports') ? 'on' : '')} onClick={() => navigate(ROUTE.reports)}>
-        <Icon name="chart" /><span>Reports</span>
+      <button className={'bn-item ' + (on('reports') ? 'on' : '')} onClick={() => navigate(ROUTE.recurring)}>
+        <Icon name="convert" /><span>Recurring</span>
       </button>
       <button className="bn-item" onClick={() => navigate(ROUTE.expense)} aria-label="Add expense">
         <span className="bn-add"><Icon name="plus" /></span>
@@ -159,8 +175,8 @@ function BottomNav() {
       <button className={'bn-item ' + (on('tx') ? 'on' : '')} onClick={() => navigate(ROUTE.tx)}>
         <Icon name="list" /><span>Activity</span>
       </button>
-      <button className={'bn-item ' + (on('settings') ? 'on' : '')} onClick={() => navigate(ROUTE.settings)}>
-        <Icon name="gear" /><span>Settings</span>
+      <button className={'bn-item ' + (on('splits') ? 'on' : '')} onClick={() => navigate(ROUTE.splits)}>
+        <Icon name="share" /><span>Split</span>
       </button>
     </nav>
   );
@@ -170,7 +186,6 @@ export default function Layout() {
   const { ccy, dark, setDark, setCcy } = useApp();
   const { user, isAuthenticated } = useAuth();
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
     window.location.href = '/login';
     return null;
@@ -192,22 +207,39 @@ export const usePage = () => useOutletContext();
 // Shared topbar used by pages
 export function Topbar({ title, sub, children }) {
   const navigate = useNavigate();
+  const { dark, setDark } = usePage();
+  const { user } = useAuth();
+
   return (
     <header className="topbar">
-      <div>
-        <div className="hi">{title}</div>
-        {sub && <div className="sub">{sub}</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          <div className="hi">{title}</div>
+          {sub && <div className="sub">{sub}</div>}
+        </div>
+        <div className='tb-hide-md' style={{display:'flex' , gap:12}}>
+          <button className='bn-item' onClick={() => navigate(ROUTE.reports)}>
+           <Icon name="chart" /><span>Reports</span>
+          </button>
+          <button className='bn-item' onClick={() => navigate('/settings')}>
+            <Icon name="gear" /><span>Settings</span>
+          </button>
+        </div>
       </div>
+      <div></div>
       <div className="tb-right">
+
+        <div className='tb-hide-sm'>
+          <Toggle on={dark} onClick={() => setDark(d => !d)} />
+        </div>
         {children}
-        <button className="icon-btn tb-hide-sm" onClick={() => navigate('/convert')}>
-          <Icon name="mail" size={17} />
-        </button>
-        <button className="icon-btn tb-hide-sm">
-          <span className="dot" />
-          <Icon name="bell" size={17} />
-        </button>
-        <div className="ava tb-hide-sm">R</div>
+        <div className='tb-hide-sm'>
+          {/* <button className="icon-btn tb-hide-sm">
+            <span className="dot" />
+            <Icon name="bell" size={17} />
+          </button> */}
+          <UserMenu user={user} />
+        </div>
       </div>
     </header>
   );

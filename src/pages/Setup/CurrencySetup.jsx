@@ -2,112 +2,81 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useCurrencies } from '../../hooks/useCurrencies.js';
 import { Alert } from '../../components/Alert';
 import { Icon } from '../../components/Icon';
+import apiClient from '../../api/client';
 import '../../styles/setup.scss';
+
+// small set of popular codes to surface as quick-pick tiles
+const POPULAR = ['INR', 'AED', 'OMR', 'SAR', 'QAR', 'USD', 'GBP', 'EUR'];
 
 export default function CurrencySetup() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [primaryCurrency, setPrimaryCurrency] = useState('AED');
-  const [additionalCurrencies, setAdditionalCurrencies] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const { user, updateUser } = useAuth();
+  const { currencies } = useCurrencies(); // full list from backend
+
+  // if they already set a home currency, this step is done — leave
+  useEffect(() => {
+    if (user?.preferences?.main_currency) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
+  const [mainCurrency, setMainCurrency] = useState(user?.preferences?.main_currency || '');
+  const [tracked, setTracked] = useState(user?.preferences?.tracked_currencies || []);
+  const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
-  // Complete list of world currencies
-  const allCurrencies = [
-    { code: 'AED', name: 'UAE Dirham', country: 'United Arab Emirates', flag: '🇦🇪', symbol: 'د.إ' },
-    { code: 'USD', name: 'US Dollar', country: 'United States', flag: '🇺🇸', symbol: '$' },
-    { code: 'EUR', name: 'Euro', country: 'European Union', flag: '🇪🇺', symbol: '€' },
-    { code: 'GBP', name: 'British Pound', country: 'United Kingdom', flag: '🇬🇧', symbol: '£' },
-    { code: 'INR', name: 'Indian Rupee', country: 'India', flag: '🇮🇳', symbol: '₹' },
-    { code: 'SAR', name: 'Saudi Riyal', country: 'Saudi Arabia', flag: '🇸🇦', symbol: '﷼' },
-    { code: 'OMR', name: 'Omani Rial', country: 'Oman', flag: '🇴🇲', symbol: 'ر.ع.' },
-    { code: 'QAR', name: 'Qatari Riyal', country: 'Qatar', flag: '🇶🇦', symbol: 'ر.ق' },
-    { code: 'KWD', name: 'Kuwaiti Dinar', country: 'Kuwait', flag: '🇰🇼', symbol: 'د.ك' },
-    { code: 'BHD', name: 'Bahraini Dinar', country: 'Bahrain', flag: '🇧🇭', symbol: '.د.ب' },
-    { code: 'TRY', name: 'Turkish Lira', country: 'Turkey', flag: '🇹🇷', symbol: '₺' },
-    { code: 'EGP', name: 'Egyptian Pound', country: 'Egypt', flag: '🇪🇬', symbol: '£' },
-    { code: 'PKR', name: 'Pakistani Rupee', country: 'Pakistan', flag: '🇵🇰', symbol: '₨' },
-    { code: 'BDT', name: 'Bangladeshi Taka', country: 'Bangladesh', flag: '🇧🇩', symbol: '৳' },
-    { code: 'LKR', name: 'Sri Lankan Rupee', country: 'Sri Lanka', flag: '🇱🇰', symbol: 'Rs' },
-    { code: 'NPR', name: 'Nepalese Rupee', country: 'Nepal', flag: '🇳🇵', symbol: 'रु' },
-    { code: 'PHP', name: 'Philippine Peso', country: 'Philippines', flag: '🇵🇭', symbol: '₱' },
-    { code: 'IDR', name: 'Indonesian Rupiah', country: 'Indonesia', flag: '🇮🇩', symbol: 'Rp' },
-    { code: 'MYR', name: 'Malaysian Ringgit', country: 'Malaysia', flag: '🇲🇾', symbol: 'RM' },
-    { code: 'SGD', name: 'Singapore Dollar', country: 'Singapore', flag: '🇸🇬', symbol: 'S$' },
-    { code: 'THB', name: 'Thai Baht', country: 'Thailand', flag: '🇹🇭', symbol: '฿' },
-    { code: 'VND', name: 'Vietnamese Dong', country: 'Vietnam', flag: '🇻🇳', symbol: '₫' },
-    { code: 'CNY', name: 'Chinese Yuan', country: 'China', flag: '🇨🇳', symbol: '¥' },
-    { code: 'JPY', name: 'Japanese Yen', country: 'Japan', flag: '🇯🇵', symbol: '¥' },
-    { code: 'KRW', name: 'South Korean Won', country: 'South Korea', flag: '🇰🇷', symbol: '₩' },
-    { code: 'AUD', name: 'Australian Dollar', country: 'Australia', flag: '🇦🇺', symbol: 'A$' },
-    { code: 'CAD', name: 'Canadian Dollar', country: 'Canada', flag: '🇨🇦', symbol: 'C$' },
-    { code: 'CHF', name: 'Swiss Franc', country: 'Switzerland', flag: '🇨🇭', symbol: 'Fr' },
-    { code: 'ZAR', name: 'South African Rand', country: 'South Africa', flag: '🇿🇦', symbol: 'R' },
-  ];
+  const getCcy = (code) => currencies.find((c) => c.code === code);
 
-  // Filter currencies based on search
-  const filteredCurrencies = allCurrencies.filter(currency => 
-    currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    currency.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    currency.country.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // popular tiles that actually exist in the backend list
+  const popularAvailable = POPULAR.filter((code) => currencies.some((c) => c.code === code));
 
-  const handleAddCurrency = (currencyCode) => {
-    if (!additionalCurrencies.includes(currencyCode) && currencyCode !== primaryCurrency) {
-      setAdditionalCurrencies([...additionalCurrencies, currencyCode]);
-    }
-  };
+  const filtered = currencies.filter((c) => {
+    const q = search.toLowerCase();
+    return c.code.toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q);
+  });
 
-  const handleRemoveCurrency = (currencyCode) => {
-    setAdditionalCurrencies(additionalCurrencies.filter(c => c !== currencyCode));
+  const toggleTracked = (code) => {
+    if (code === mainCurrency) return; // home is always tracked, can't toggle
+    setTracked((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
   };
 
   const handleSubmit = async () => {
+    if (!mainCurrency) {
+      setAlert({ type: 'error', message: 'Please choose your home currency first.' });
+      return;
+    }
     setIsLoading(true);
     setAlert(null);
 
+    // home currency is always part of tracked
+    const finalTracked = tracked.includes(mainCurrency) ? tracked : [mainCurrency, ...tracked];
+
     try {
-      const response = await apiClient.post('/user/currencies', {
-        primary_currency: primaryCurrency,
-        tracked_currencies: additionalCurrencies,
+      const { data } = await apiClient.post('/user/currencies', {
+        main_currency: mainCurrency,
+        tracked_currencies: finalTracked,
       });
 
-      if (response.data.success) {
-        // Update local storage with user preferences
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        userData.preferences = {
-          primary_currency: primaryCurrency,
-          tracked_currencies: additionalCurrencies,
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-
-        // Navigate to dashboard
-        navigate('/dashboard');
-      } else {
-        setAlert({
-          type: 'error',
-          message: response.data.message || 'Failed to save currency preferences',
+      if (data.success) {
+        // keep local user in sync so guards see the new currency immediately
+        updateUser?.({
+          ...user,
+          preferences: { ...(user?.preferences || {}), main_currency: mainCurrency, tracked_currencies: finalTracked },
         });
+        navigate('/dashboard', { replace: true });
+      } else {
+        setAlert({ type: 'error', message: data.message || 'Could not save your currencies.' });
       }
     } catch (error) {
-      setAlert({
-        type: 'error',
-        message: error.response?.data?.message || 'An error occurred. Please try again.',
-      });
+      setAlert({ type: 'error', message: error.response?.data?.message || 'Something went wrong. Please try again.' });
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleSkip = () => {
-    navigate('/dashboard');
-  };
-
-  // Get currency object by code
-  const getCurrency = (code) => allCurrencies.find(c => c.code === code);
 
   return (
     <div className="setup-wrap">
@@ -117,138 +86,118 @@ export default function CurrencySetup() {
             <div className="setup-logo__icon">K</div>
             <div className="setup-logo__text">Khaleej</div>
           </div>
-          <div className="setup-progress">
-            <div className="setup-progress__step setup-progress__step--active">1</div>
-            <div className="setup-progress__line"></div>
-            <div className="setup-progress__step">2</div>
-          </div>
         </div>
 
         <div className="setup-content">
-          <h1 className="setup-title">Choose your currencies</h1>
+          <h1 className="setup-title">Set up your currencies</h1>
           <p className="setup-subtitle">
-            Select the currencies you work with. You can always add more later in settings.
+            Two quick steps — pick your home currency, then any others you use day to day.
           </p>
 
           {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
-          {/* Primary Currency Section */}
+          {/* STEP 1 — Home currency */}
           <div className="currency-section">
             <label className="currency-section__label">
-              Primary Currency <span className="required">*</span>
+              1 · Your home currency <span className="required">*</span>
             </label>
             <p className="currency-section__hint">
-              This will be your main currency for dashboards and reports
+              Everything is anchored to this. <strong>It can’t be changed later</strong>, so pick the country you call home.
             </p>
-            
+
             <div className="currency-grid">
-              {['AED', 'USD', 'EUR', 'GBP', 'INR', 'SAR', 'OMR', 'QAR'].map(code => {
-                const currency = getCurrency(code);
+              {popularAvailable.map((code) => {
+                const c = getCcy(code);
                 return (
                   <button
                     key={code}
-                    onClick={() => setPrimaryCurrency(code)}
-                    className={`currency-card ${primaryCurrency === code ? 'currency-card--active' : ''}`}
+                    onClick={() => setMainCurrency(code)}
+                    className={`currency-card ${mainCurrency === code ? 'currency-card--active' : ''}`}
                   >
-                    <div className="currency-card__flag">{currency?.flag}</div>
                     <div className="currency-card__code">{code}</div>
-                    <div className="currency-card__name">{currency?.name}</div>
-                    {primaryCurrency === code && (
-                      <div className="currency-card__check">
-                        <Icon name="check" size={16} />
-                      </div>
+                    <div className="currency-card__name">{c?.name}</div>
+                    {mainCurrency === code && (
+                      <div className="currency-card__check"><Icon name="check" size={16} /></div>
                     )}
                   </button>
                 );
               })}
             </div>
 
-            <button className="btn ghost btn-full" onClick={() => document.getElementById('currency-search').scrollIntoView({ behavior: 'smooth' })}>
-              <Icon name="search" size={16} /> View all {allCurrencies.length} currencies
-            </button>
+            {/* full-list dropdown for anything not in the popular tiles */}
+            <select
+              className="form-input"
+              style={{ marginTop: 10 }}
+              value={popularAvailable.includes(mainCurrency) ? '' : mainCurrency}
+              onChange={(e) => e.target.value && setMainCurrency(e.target.value)}
+            >
+              <option value="">Or pick another currency…</option>
+              {currencies
+                .filter((c) => !popularAvailable.includes(c.code))
+                .map((c) => (
+                  <option key={c.code} value={c.code}>{c.code} — {c.name} {c.flag}</option>
+                ))}
+            </select>
           </div>
 
-          {/* Additional Currencies Section */}
-          <div className="currency-section" id="currency-search">
-            <label className="currency-section__label">Track additional currencies</label>
-            <p className="currency-section__hint">
-              Add currencies you frequently convert between (optional)
-            </p>
+          {/* STEP 2 — Other currencies (optional) */}
+          <div className="currency-section">
+            <label className="currency-section__label">2 · Other currencies you use</label>
+            <p className="currency-section__hint">Optional — these show as quick shortcuts when adding a transaction.</p>
 
-            {/* Search Bar */}
+            {/* selected chips */}
+            <div className="selected-currencies">
+              <div className="selected-currencies__list">
+                {mainCurrency && (
+                  <span className="selected-currency" style={{ opacity: 0.7 }}>
+                    {mainCurrency} · home
+                  </span>
+                )}
+                {tracked.filter((c) => c !== mainCurrency).map((code) => (
+                  <span key={code} className="selected-currency">
+                    {code}
+                    <button onClick={() => toggleTracked(code)} className="selected-currency__remove">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
             <div className="currency-search">
               <Icon name="search" size={18} />
               <input
                 type="text"
-                placeholder="Search by currency name, code, or country..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by code or name…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="currency-search__input"
               />
             </div>
 
-            {/* Selected Currencies Tags */}
-            {additionalCurrencies.length > 0 && (
-              <div className="selected-currencies">
-                <div className="selected-currencies__label">Selected:</div>
-                <div className="selected-currencies__list">
-                  {additionalCurrencies.map(code => {
-                    const currency = getCurrency(code);
-                    return (
-                      <span key={code} className="selected-currency">
-                        {currency?.flag} {code}
-                        <button onClick={() => handleRemoveCurrency(code)} className="selected-currency__remove">
-                          ×
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
+            {search.trim() && (
+              <div className="currency-list">
+                {filtered
+                  .filter((c) => c.code !== mainCurrency && !tracked.includes(c.code))
+                  .slice(0, 40)
+                  .map((c) => (
+                    <button key={c.code} onClick={() => { toggleTracked(c.code); setSearch(''); }} className="currency-list-item">
+                      <div className="currency-list-item__info">
+                        <div className="currency-list-item__code">{c.code} {c.flag}</div>
+                        <div className="currency-list-item__name">{c.name}</div>
+                      </div>
+                      <div className="currency-list-item__add"><Icon name="plus" size={20} /></div>
+                    </button>
+                  ))}
+                {filtered.length === 0 && (
+                  <div className="currency-list__empty"><p>No currencies found</p></div>
+                )}
               </div>
             )}
-
-            {/* Currency List */}
-            <div className="currency-list">
-              {filteredCurrencies
-                .filter(c => c.code !== primaryCurrency && !additionalCurrencies.includes(c.code))
-                .map(currency => (
-                  <button
-                    key={currency.code}
-                    onClick={() => handleAddCurrency(currency.code)}
-                    className="currency-list-item"
-                  >
-                    <div className="currency-list-item__flag">{currency.flag}</div>
-                    <div className="currency-list-item__info">
-                      <div className="currency-list-item__code">{currency.code}</div>
-                      <div className="currency-list-item__name">{currency.name}</div>
-                      <div className="currency-list-item__country">{currency.country}</div>
-                    </div>
-                    <div className="currency-list-item__add">
-                      <Icon name="plus" size={20} />
-                    </div>
-                  </button>
-                ))}
-              
-              {filteredCurrencies.length === 0 && (
-                <div className="currency-list__empty">
-                  <Icon name="search" size={48} />
-                  <p>No currencies found</p>
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action — no skip, setup is required */}
           <div className="setup-actions">
-            <button className="btn ghost" onClick={handleSkip}>
-              Skip for now
-            </button>
-            <button 
-              className="btn pri lg" 
-              onClick={handleSubmit}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Saving...' : 'Continue to dashboard'}
+            <button className="btn pri lg btn-full" onClick={handleSubmit} disabled={isLoading || !mainCurrency}>
+              {isLoading ? 'Saving…' : 'Continue to dashboard'}
             </button>
           </div>
         </div>

@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { validateLogin } from '../utils/validators';
 import { Alert } from '../components/Alert';
 import '../styles/main.scss';
+import { Icon } from '../components/Icon';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [alert, setAlert] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [values, setValues] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
 
@@ -108,15 +110,25 @@ export default function Login() {
                   Forgot?
                 </a>
               </label>
-              <input
-                type="password"
-                name="password"
-                className={`form-input ${errors.password ? 'form-input--error' : ''}`}
-                value={values.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                disabled={isLoading}
-              />
+              <div className="password-wrap">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  className={`form-input ${errors.password ? 'form-input--error' : ''}`}
+                  value={values.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  <Icon name={showPassword ? 'eye-off' : 'eye'} size={18} />                </button>
+              </div>
               {errors.password && (
                 <div className="form-field__error">{errors.password}</div>
               )}
