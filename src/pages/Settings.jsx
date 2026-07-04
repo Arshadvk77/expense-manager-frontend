@@ -22,6 +22,27 @@ export default function Settings() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileErr, setProfileErr] = useState({});
 
+  // ----- currencies: home (locked), display (editable), quick (chips) -----
+  const mainCcy = user?.preferences?.main_currency;
+
+  const FALLBACK_TRACKED = [mainCcy];
+  const savedTracked = user?.preferences?.tracked_currencies?.length
+    ? user.preferences.tracked_currencies
+    : FALLBACK_TRACKED;
+
+  const [trackedDraft, setTrackedDraft] = useState(savedTracked);
+  const [savingTracked, setSavingTracked] = useState(false);
+  const [trackedSearch, setTrackedSearch] = useState('');
+
+  // ----- display currency + preferred rate -----
+  const [displayCcy, setDisplayCcy] = useState(user?.preferences?.display_currency || mainCcy);
+  const [showHomeValue, setShowHomeValue] = useState(user?.preferences?.show_home_value ?? true);
+  const [displayRatePref, setDisplayRatePref] = useState(
+    user?.preferences?.display_rate_pref ? String(user.preferences.display_rate_pref) : ''
+  );
+  const [displayUseLive, setDisplayUseLive] = useState(user?.preferences?.display_use_live ?? false);
+  const [savingRate, setSavingRate] = useState(false);
+
   // Re-sync currency state once `user` (and its preferences) actually loads.
   useEffect(() => {
     if (!user?.preferences) return;
@@ -30,6 +51,8 @@ export default function Settings() {
     setTrackedDraft(tracked);
     setDisplayCcy(p.display_currency || p.main_currency || '');
     setShowHomeValue(p.show_home_value ?? true);
+    setDisplayRatePref(p.display_rate_pref ? String(p.display_rate_pref) : '');
+    setDisplayUseLive(p.display_use_live ?? false);
   }, [user?.preferences]);
 
   async function saveProfile() {
@@ -90,22 +113,9 @@ export default function Settings() {
     }
   }
 
-  // ----- currencies: home (locked), display (editable), quick (chips) -----
-  const mainCcy = user?.preferences?.main_currency;
-  const mainMeta = currencies.find((c) => c.code === mainCcy);
-
-  const FALLBACK_TRACKED = [mainCcy];
-  const savedTracked = user?.preferences?.tracked_currencies?.length
-    ? user.preferences.tracked_currencies
-    : FALLBACK_TRACKED;
-
-  const [trackedDraft, setTrackedDraft] = useState(savedTracked);
-  const [savingTracked, setSavingTracked] = useState(false);
-  const [trackedSearch, setTrackedSearch] = useState('');
-
   function toggleTracked(code) {
     setTrackedDraft((prev) => {
-      if (code === mainCcy) return prev; // can't remove the home currency
+      if (code === mainCcy) return prev;
       if (prev.includes(code)) return prev.length > 1 ? prev.filter((c) => c !== code) : prev;
       return [...prev, code];
     });
@@ -126,15 +136,20 @@ export default function Settings() {
 
   const trackedDirty = JSON.stringify([...trackedDraft].sort()) !== JSON.stringify([...savedTracked].sort());
 
-  // ----- display currency (editable) + home-value toggle -----
-  const [displayCcy, setDisplayCcy] = useState(user?.preferences?.display_currency || mainCcy);
-  const [showHomeValue, setShowHomeValue] = useState(user?.preferences?.show_home_value ?? true);
+  // helper: one payload for all display-currency saves so nothing gets wiped
+  const displayPayload = (over = {}) => ({
+    display_currency: displayCcy,
+    show_home_value: showHomeValue,
+    display_rate_pref: displayRatePref ? parseFloat(displayRatePref) : null,
+    display_use_live: displayUseLive,
+    ...over,
+  });
 
   async function changeDisplay(code) {
     const prev = displayCcy;
     setDisplayCcy(code);
     try {
-      await userAPI.updateDisplayCurrency({ display_currency: code, show_home_value: showHomeValue });
+      await userAPI.updateDisplayCurrency(displayPayload({ display_currency: code }));
       updateUser({ ...user, preferences: { ...(user?.preferences || {}), display_currency: code } });
     } catch (err) {
       setDisplayCcy(prev);
@@ -146,11 +161,43 @@ export default function Settings() {
     const next = !showHomeValue;
     setShowHomeValue(next);
     try {
-      await userAPI.updateDisplayCurrency({ display_currency: displayCcy, show_home_value: next });
+      await userAPI.updateDisplayCurrency(displayPayload({ show_home_value: next }));
       updateUser({ ...user, preferences: { ...(user?.preferences || {}), show_home_value: next } });
     } catch (err) {
       setShowHomeValue(!next);
       setAlert({ type: 'error', message: err.message || 'Could not update.' });
+    }
+  }
+
+  async function toggleUseLive() {
+    const next = !displayUseLive;
+    setDisplayUseLive(next);
+    try {
+      await userAPI.updateDisplayCurrency(displayPayload({ display_use_live: next }));
+      updateUser({ ...user, preferences: { ...(user?.preferences || {}), display_use_live: next } });
+    } catch (err) {
+      setDisplayUseLive(!next);
+      setAlert({ type: 'error', message: err.message || 'Could not update.' });
+    }
+  }
+
+  async function saveDisplayRate() {
+    setSavingRate(true); setAlert(null);
+    try {
+      await userAPI.updateDisplayCurrency(displayPayload());
+      updateUser({
+        ...user,
+        preferences: {
+          ...(user?.preferences || {}),
+          display_rate_pref: displayRatePref ? parseFloat(displayRatePref) : null,
+          display_use_live: displayUseLive,
+        },
+      });
+      setAlert({ type: 'success', message: 'Display rate saved.' });
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || 'Could not save rate.' });
+    } finally {
+      setSavingRate(false);
     }
   }
 
@@ -266,7 +313,7 @@ export default function Settings() {
             control={
               <select
                 className="input"
-                style={{padding: '6px 10px', fontSize: 13 , width:'80px'}}
+                style={{ padding: '6px 10px', fontSize: 13, width: '80px' }}
                 value={displayCcy}
                 onChange={(e) => changeDisplay(e.target.value)}
               >
@@ -277,6 +324,47 @@ export default function Settings() {
               </select>
             }
           />
+
+          {/* Display-currency rate: fixed by default, live optional */}
+          {displayCcy !== mainCcy && (
+            <>
+              <Row
+                title="Use live exchange rate"
+                sub={displayUseLive
+                  ? `Converting ${mainCcy} → ${displayCcy} at today's market rate.`
+                  : 'Off — using your own fixed rate below.'}
+                control={<Toggle on={displayUseLive} onClick={toggleUseLive} />}
+              />
+
+              {!displayUseLive && (
+                <div style={{ padding: '12px 0', borderTop: '1px solid var(--line)' }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>Your rate</div>
+                  <div className="muted" style={{ fontSize: 11.5, marginTop: 1, marginBottom: 8 }}>
+                    Set how you value {displayCcy} against {mainCcy}. Used for dashboard totals.
+                  </div>
+                  <div className="row center" style={{ gap: 8, flexWrap: 'wrap' }}>
+                    <span className="mono text-small">1 {displayCcy} =</span>
+                    <input
+                      className="input"
+                      type="number" min="0" step="0.0001"
+                      value={displayRatePref}
+                      onChange={(e) => setDisplayRatePref(e.target.value)}
+                      placeholder="e.g. 224"
+                      style={{ width: 130 }}
+                    />
+                    <span className="mono text-small">{mainCcy}</span>
+                    <button
+                      className="btn pri"
+                      onClick={saveDisplayRate}
+                      disabled={savingRate || !(parseFloat(displayRatePref) > 0)}
+                    >
+                      {savingRate ? 'Saving…' : 'Save rate'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Show home value toggle — only when display ≠ home */}
           {displayCcy !== mainCcy && (
