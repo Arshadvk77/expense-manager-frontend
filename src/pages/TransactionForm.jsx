@@ -78,6 +78,11 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
 
   const homeCcy = user?.preferences?.main_currency;
 
+  // preferred-rate prefs (used only as a hint on the form)
+  const displayCcy      = user?.preferences?.display_currency;
+  const displayRatePref = Number(user?.preferences?.display_rate_pref) || 0; // 1 display = X home
+  const displayUseLive  = user?.preferences?.display_use_live ?? false;
+
   // exchange rate state
   const [liveRate, setLiveRate] = useState(null);
   const [customRate, setCustomRate] = useState('');
@@ -307,6 +312,14 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
   const homeAmount = effectiveRate ? amountNum * effectiveRate : null;
   const sameCurrency = currency === homeCcy;
 
+  // preferred-rate hint: only when the entered currency is the user's display currency,
+  // they have a preferred rate set, and they haven't switched to live in settings.
+  const showPreferredHint =
+    !sameCurrency &&
+    currency === displayCcy &&
+    displayRatePref > 0 &&
+    !displayUseLive;
+
   // currency options for transfer selects: tracked first, then the rest
   const allCurrencyCodes = [...trackedCodes, ...currencies.filter((c) => !trackedCodes.includes(c.code)).map((c) => c.code)];
 
@@ -472,6 +485,21 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
                     Set my own rate
                   </label>
                 </div>
+
+                {/* preferred-rate hint (display only — does not change saving) */}
+                {showPreferredHint && (
+                  <div className="text-small" style={{ color: 'var(--wine)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span>Your saved rate: 1 {currency} = {displayRatePref.toLocaleString(undefined, { maximumFractionDigits: 6 })} {homeCcy}.</span>
+                    <button
+                      type="button"
+                      className="btn ghost text-small"
+                      style={{ padding: '2px 8px' }}
+                      onClick={() => { setUseCustom(true); setCustomRate(String(displayRatePref)); }}
+                    >
+                      Use it
+                    </button>
+                  </div>
+                )}
 
                 {useCustom && (
                   <div className="row center" style={{ gap: 8 }}>
