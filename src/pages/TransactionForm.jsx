@@ -79,9 +79,9 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
   const homeCcy = user?.preferences?.main_currency;
 
   // preferred-rate prefs (used only as a hint on the form)
-  const displayCcy      = user?.preferences?.display_currency;
+  const displayCcy = user?.preferences?.display_currency;
   const displayRatePref = Number(user?.preferences?.display_rate_pref) || 0; // 1 display = X home
-  const displayUseLive  = user?.preferences?.display_use_live ?? false;
+  const displayUseLive = user?.preferences?.display_use_live ?? false;
 
   // exchange rate state
   const [liveRate, setLiveRate] = useState(null);
@@ -93,10 +93,10 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
   // --- TRANSFER state ---
   const [trFromCur, setTrFromCur] = useState(user?.preferences?.display_currency || homeCcy || trackedCodes[0] || 'OMR');
   const [trFromAmt, setTrFromAmt] = useState('');
-  const [trToCur, setTrToCur]     = useState(homeCcy || trackedCodes[0] || 'INR');
-  const [trToAmt, setTrToAmt]     = useState('');
-  const [trFee, setTrFee]         = useState('');
-  const [trFeeCur, setTrFeeCur]   = useState(user?.preferences?.display_currency || homeCcy || trackedCodes[0] || 'OMR');
+  const [trToCur, setTrToCur] = useState(homeCcy || trackedCodes[0] || 'INR');
+  const [trToAmt, setTrToAmt] = useState('');
+  const [trFee, setTrFee] = useState('');
+  const [trFeeCur, setTrFeeCur] = useState(user?.preferences?.display_currency || homeCcy || trackedCodes[0] || 'OMR');
 
   const isTransfer = type === 'transfer';
 
@@ -131,14 +131,43 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
 
   // fetch live rate when currency changes (skip when it equals home currency, or in transfer mode)
   useEffect(() => {
-    setRateError(''); setLiveRate(null);
-    if (isTransfer || !currency || currency === homeCcy) return;
+    setRateError('');
+    if (isTransfer || !currency || currency === homeCcy) { setLiveRate(null); return; }
+
+    // preferred rate is the default for the display currency (unless settings forces live)
+    if (preferredApplies) {
+      setLiveRate(null);
+      setUseCustom(true);
+      setCustomRate(String(displayRatePref));
+      return; // no live fetch
+    }
+
+    // otherwise fetch live
+    setUseCustom(false);
+    setCustomRate('');
+    setLiveRate(null);
     setRateLoading(true);
     transactionsAPI.getRate(currency, homeCcy)
       .then((res) => { if (res.success) setLiveRate(res.rate); else setRateError('Live rate unavailable'); })
       .catch(() => setRateError('Live rate unavailable'))
       .finally(() => setRateLoading(false));
-  }, [currency, homeCcy, isTransfer]);
+  }, [currency, homeCcy, isTransfer, preferredApplies, displayRatePref]);
+  
+  async function switchToLive() {
+    setUseCustom(false);
+    setCustomRate('');
+    setRateError('');
+    setRateLoading(true);
+    try {
+      const res = await transactionsAPI.getRate(currency, homeCcy);
+      if (res.success) setLiveRate(res.rate);
+      else setRateError('Live rate unavailable');
+    } catch {
+      setRateError('Live rate unavailable');
+    } finally {
+      setRateLoading(false);
+    }
+  }
 
   // categories for the active type (only income/expense have categories)
   useEffect(() => {
@@ -320,6 +349,14 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
     displayRatePref > 0 &&
     !displayUseLive;
 
+  // preferred rate applies as the DEFAULT when: currency is the display currency,
+  // a preferred rate exists, and settings isn't forcing live.
+  const preferredApplies =
+    currency === displayCcy &&
+    currency !== homeCcy &&
+    displayRatePref > 0 &&
+    !displayUseLive;
+
   // currency options for transfer selects: tracked first, then the rest
   const allCurrencyCodes = [...trackedCodes, ...currencies.filter((c) => !trackedCodes.includes(c.code)).map((c) => c.code)];
 
@@ -429,47 +466,47 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
             </div>
           </div>
         ) : (
-        /* ===================== INCOME / EXPENSE MODE ===================== */
-        <>
-          {/* Amount */}
-          <div>
-            <div className="text-muted text-small text-semibold">Amount</div>
-            <div className="amount-row">
-              <span className="amount-row__currency mono">{currency}</span>
-              <input
-                className="num" type="number" inputMode="decimal" min="0" step="0.01"
-                value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
-                style={{ border: 0, outline: 'none', background: 'transparent', font: 'inherit', fontSize: 52, fontWeight: 800, flex: 1, minWidth: 0, color: 'var(--ink)' }}
-              />
-            </div>
-
-            {!sameCurrency && homeAmount != null && (
-              <div className="muted" style={{ fontSize: 15, fontWeight: 600, marginTop: 2 }}>
-                ≈ {homeCcy} {homeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          /* ===================== INCOME / EXPENSE MODE ===================== */
+          <>
+            {/* Amount */}
+            <div>
+              <div className="text-muted text-small text-semibold">Amount</div>
+              <div className="amount-row">
+                <span className="amount-row__currency mono">{currency}</span>
+                <input
+                  className="num" type="number" inputMode="decimal" min="0" step="0.01"
+                  value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
+                  style={{ border: 0, outline: 'none', background: 'transparent', font: 'inherit', fontSize: 52, fontWeight: 800, flex: 1, minWidth: 0, color: 'var(--ink)' }}
+                />
               </div>
-            )}
 
-            {fieldErrors.amount && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 6 }}>{fieldErrors.amount}</div>}
+              {!sameCurrency && homeAmount != null && (
+                <div className="muted" style={{ fontSize: 15, fontWeight: 600, marginTop: 2 }}>
+                  ≈ {homeCcy} {homeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              )}
 
-            {/* Tracked currencies as chips */}
-            <div className="currency-chips" style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              {trackedCodes.map((code) => (
-                <span key={code} className={`chip ${code === currency ? 'wine' : ''} cursor-pointer`} onClick={() => setCurrency(code)}>{code}</span>
-              ))}
-              <select
-                value={trackedCodes.includes(currency) ? '' : currency}
-                onChange={(e) => e.target.value && setCurrency(e.target.value)}
-                style={{ marginLeft: 'auto', border: '1px solid var(--line)', borderRadius: 999, padding: '4px 10px', background: 'transparent', fontSize: 12, color: 'var(--ink)', width: '90px' }}
-              >
-                <option value="">Other…</option>
-                {currencies.filter((c) => !trackedCodes.includes(c.code)).map((c) => (
-                  <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+              {fieldErrors.amount && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 6 }}>{fieldErrors.amount}</div>}
+
+              {/* Tracked currencies as chips */}
+              <div className="currency-chips" style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {trackedCodes.map((code) => (
+                  <span key={code} className={`chip ${code === currency ? 'wine' : ''} cursor-pointer`} onClick={() => setCurrency(code)}>{code}</span>
                 ))}
-              </select>
-            </div>
+                <select
+                  value={trackedCodes.includes(currency) ? '' : currency}
+                  onChange={(e) => e.target.value && setCurrency(e.target.value)}
+                  style={{ marginLeft: 'auto', border: '1px solid var(--line)', borderRadius: 999, padding: '4px 10px', background: 'transparent', fontSize: 12, color: 'var(--ink)', width: '90px' }}
+                >
+                  <option value="">Other…</option>
+                  {currencies.filter((c) => !trackedCodes.includes(c.code)).map((c) => (
+                    <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Exchange rate row — only when currency ≠ home */}
-            {!sameCurrency && (
+              {/* Exchange rate row — only when currency ≠ home */}
+              {!sameCurrency && (
               <div className="card" style={{ marginTop: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-soft, transparent)' }}>
                 <div className="row between center" style={{ flexWrap: 'wrap', gap: 8 }}>
                   <div className="text-small">
@@ -481,24 +518,23 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
                     {rateError && !useCustom && <span style={{ color: 'var(--clay)' }}> · {rateError}</span>}
                   </div>
                   <label className="row center text-small" style={{ gap: 6, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={useCustom} onChange={(e) => { setUseCustom(e.target.checked); if (e.target.checked && liveRate) setCustomRate(String(liveRate)); }} />
+                    <input type="checkbox" checked={useCustom} onChange={(e) => { setUseCustom(e.target.checked); if (e.target.checked && (liveRate || displayRatePref)) setCustomRate(String(liveRate || displayRatePref)); }} />
                     Set my own rate
                   </label>
                 </div>
 
-                {/* preferred-rate hint (display only — does not change saving) */}
-                {showPreferredHint && (
+                {/* source line — tells the user which rate is being used, with a switch option */}
+                {preferredApplies && useCustom && parseFloat(customRate) === displayRatePref ? (
                   <div className="text-small" style={{ color: 'var(--wine)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span>Your saved rate: 1 {currency} = {displayRatePref.toLocaleString(undefined, { maximumFractionDigits: 6 })} {homeCcy}.</span>
-                    <button
-                      type="button"
-                      className="btn ghost text-small"
-                      style={{ padding: '2px 8px' }}
-                      onClick={() => { setUseCustom(true); setCustomRate(String(displayRatePref)); }}
-                    >
-                      Use it
+                    <span>Using your saved rate.</span>
+                    <button type="button" className="btn ghost text-small" style={{ padding: '2px 8px' }} onClick={switchToLive}>
+                      Use live rate instead
                     </button>
                   </div>
+                ) : (
+                  !preferredApplies && displayRatePref > 0 && currency === displayCcy && (
+                    <div className="text-small muted">Using live rate (live is on in settings).</div>
+                  )
                 )}
 
                 {useCustom && (
@@ -514,188 +550,188 @@ export default function TransactionForm({ mode = 'add', defaultType = 'expense' 
                 )}
               </div>
             )}
-          </div>
+            </div>
 
-          {/* Category */}
-          <div>
-            <div className="text-muted text-small text-semibold" style={{ marginBottom: 12 }}>Category</div>
-            <div className="category-grid">
-              {categories.map((c) => {
-                const isOwn = !c.is_system;
-                return (
-                  <button
-                    key={c.id} type="button"
-                    onClick={() => setCategoryId(c.id === categoryId ? null : c.id)}
-                    className={`card category-grid__button ${c.id === categoryId ? 'category-grid__button--active' : ''}`}
-                    style={{ position: 'relative' }}
-                  >
-                    <span className="m-ic" style={{ width: 32, height: 32, background: (c.color || '#888') + '22', color: c.color || 'var(--ink)' }}>
-                      {(c.name || '?').charAt(0)}
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</span>
-
-                    {isOwn && (
-                      <span
-                        onClick={(e) => startEditCat(c, e)}
-                        title="Edit category"
-                        style={{ position: 'absolute', top: 6, right: 6, padding: 3, borderRadius: 6, opacity: 0.6 }}
-                        onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
-                        onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.6)}
-                      >
-                        <Icon name="gear" size={13} />
+            {/* Category */}
+            <div>
+              <div className="text-muted text-small text-semibold" style={{ marginBottom: 12 }}>Category</div>
+              <div className="category-grid">
+                {categories.map((c) => {
+                  const isOwn = !c.is_system;
+                  return (
+                    <button
+                      key={c.id} type="button"
+                      onClick={() => setCategoryId(c.id === categoryId ? null : c.id)}
+                      className={`card category-grid__button ${c.id === categoryId ? 'category-grid__button--active' : ''}`}
+                      style={{ position: 'relative' }}
+                    >
+                      <span className="m-ic" style={{ width: 32, height: 32, background: (c.color || '#888') + '22', color: c.color || 'var(--ink)' }}>
+                        {(c.name || '?').charAt(0)}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</span>
 
-              <button type="button" className="card category-grid__button" onClick={() => { setNewCatOpen((v) => !v); setEditCatId(null); }} style={{ borderStyle: 'dashed' }}>
-                <span className="m-ic" style={{ width: 32, height: 32, background: 'var(--line)', color: 'var(--ink)' }}>
-                  <Icon name="plus" size={16} />
-                </span>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>New</span>
-              </button>
-            </div>
+                      {isOwn && (
+                        <span
+                          onClick={(e) => startEditCat(c, e)}
+                          title="Edit category"
+                          style={{ position: 'absolute', top: 6, right: 6, padding: 3, borderRadius: 6, opacity: 0.6 }}
+                          onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
+                          onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.6)}
+                        >
+                          <Icon name="gear" size={13} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
 
-            {newCatOpen && (
-              <div className="card" style={{ marginTop: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
-                  <input
-                    className="form-input" autoFocus value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') createCategory(); }}
-                    placeholder={`New ${type} category`} style={{ flex: 1, minWidth: 160 }}
-                  />
-                  <button className="btn pri" onClick={createCategory} disabled={creatingCat || !newCatName.trim()}>
-                    {creatingCat ? 'Adding…' : 'Add'}
-                  </button>
-                  <button className="btn ghost" onClick={() => { setNewCatOpen(false); setNewCatName(''); }}>Cancel</button>
-                </div>
-                <ColorRow value={newCatColor} onChange={setNewCatColor} />
-              </div>
-            )}
-
-            {editCatId && (
-              <div className="card" style={{ marginTop: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12, borderColor: 'var(--wine)' }}>
-                <div className="text-small text-semibold">Edit category</div>
-                <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
-                  <input
-                    className="form-input" autoFocus value={editCatName}
-                    onChange={(e) => setEditCatName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') saveCatEdit(); }}
-                    style={{ flex: 1, minWidth: 160 }}
-                  />
-                  <button className="btn pri" onClick={saveCatEdit} disabled={savingCat || !editCatName.trim()}>
-                    {savingCat ? 'Saving…' : 'Save'}
-                  </button>
-                  <button className="btn ghost" onClick={() => setEditCatId(null)}>Cancel</button>
-                  <button className="btn ghost" style={{ color: 'var(--clay)' }} onClick={() => setConfirmCatId(editCatId)}>
-                    <Icon name="trash" size={14} /> Delete
-                  </button>
-                </div>
-                <ColorRow value={editCatColor} onChange={setEditCatColor} />
-              </div>
-            )}
-
-            {fieldErrors.category_id && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 6 }}>{fieldErrors.category_id}</div>}
-          </div>
-
-          <hr className="hr" />
-
-          {/* Details */}
-          <div className="grid grid-2cols">
-            <div className="form-field">
-              <label>{repeat ? 'Starts on' : 'Date'}</label>
-              <div
-                className="form-input"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 12px', position: 'relative' }}
-                onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
-              >
-                <Icon name="cal" size={17} />
-                <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: date ? 'var(--ink)' : 'var(--muted)' }}>
-                  {date ? new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Pick a date'}
-                </span>
-                {!repeat && date !== today() && (
-                  <button type="button" className="chip" onClick={(e) => { e.stopPropagation(); setDate(today()); }} style={{ fontSize: 11 }}>
-                    Today
-                  </button>
-                )}
-                <input
-                  type="date" value={date} max={!repeat ? today() : undefined} onChange={(e) => setDate(e.target.value)}
-                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', border: 0 }}
-                />
-              </div>
-              {fieldErrors.date && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 4 }}>{fieldErrors.date}</div>}
-            </div>
-            <div className="form-field">
-              <label>Source / label</label>
-              <input className="form-input" value={source} onChange={(e) => setSource(e.target.value)} placeholder="e.g. Salary — ADNOC" />
-            </div>
-            <div className="form-field form-field--full-width">
-              <label>Notes</label>
-              <input className="form-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note" />
-            </div>
-          </div>
-
-          {/* Repeat (add mode only) */}
-          {!isEdit && (
-            <>
-              <hr className="hr" />
-              <div className="row between center">
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>Repeat this</div>
-                  <div className="muted text-small">Auto-create it on a schedule (salary, rent, subscriptions).</div>
-                </div>
-                <Toggle on={repeat} onClick={() => setRepeat((v) => !v)} />
+                <button type="button" className="card category-grid__button" onClick={() => { setNewCatOpen((v) => !v); setEditCatId(null); }} style={{ borderStyle: 'dashed' }}>
+                  <span className="m-ic" style={{ width: 32, height: 32, background: 'var(--line)', color: 'var(--ink)' }}>
+                    <Icon name="plus" size={16} />
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>New</span>
+                </button>
               </div>
 
-              {repeat && (
-                <div className="grid grid-2cols">
-                  <div className="form-field">
-                    <label>Frequency</label>
-                    <select className="form-input" value={frequency} onChange={(e) => setFrequency(e.target.value)}>
-                      {FREQS.map((f) => <option key={f} value={f}>{f}</option>)}
-                    </select>
+              {newCatOpen && (
+                <div className="card" style={{ marginTop: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
+                    <input
+                      className="form-input" autoFocus value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') createCategory(); }}
+                      placeholder={`New ${type} category`} style={{ flex: 1, minWidth: 160 }}
+                    />
+                    <button className="btn pri" onClick={createCategory} disabled={creatingCat || !newCatName.trim()}>
+                      {creatingCat ? 'Adding…' : 'Add'}
+                    </button>
+                    <button className="btn ghost" onClick={() => { setNewCatOpen(false); setNewCatName(''); }}>Cancel</button>
                   </div>
-                  <div className="form-field">
-                    <label>Every</label>
-                    <input className="form-input" type="number" min="1" value={interval} onChange={(e) => setIntervalN(e.target.value)} />
-                  </div>
-                  <div className="form-field">
-                    <label>Ends</label>
-                    <select className="form-input" value={ends} onChange={(e) => setEnds(e.target.value)}>
-                      <option value="never">Never (until I stop)</option>
-                      <option value="on_date">On a date</option>
-                      <option value="after_count">After N times</option>
-                    </select>
-                  </div>
-                  {ends === 'on_date' && (
-                    <div className="form-field">
-                      <label>End date</label>
-                      <input className="form-input" type="date" min={date} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                    </div>
-                  )}
-                  {ends === 'after_count' && (
-                    <div className="form-field">
-                      <label>Number of times</label>
-                      <input className="form-input" type="number" min="1" value={maxOcc} onChange={(e) => setMaxOcc(e.target.value)} />
-                    </div>
-                  )}
+                  <ColorRow value={newCatColor} onChange={setNewCatColor} />
                 </div>
               )}
-            </>
-          )}
 
-          {/* Delete (edit mode only) */}
-          {isEdit && (
-            <>
-              <hr className="hr" />
-              <button className="btn ghost" style={{ color: 'var(--clay)', alignSelf: 'flex-start' }} onClick={() => setConfirmOpen(true)} disabled={deleting || saving}>
-                <Icon name="trash" size={15} /> Delete transaction
-              </button>
-            </>
-          )}
-        </>
+              {editCatId && (
+                <div className="card" style={{ marginTop: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 12, borderColor: 'var(--wine)' }}>
+                  <div className="text-small text-semibold">Edit category</div>
+                  <div className="row center" style={{ gap: 10, flexWrap: 'wrap' }}>
+                    <input
+                      className="form-input" autoFocus value={editCatName}
+                      onChange={(e) => setEditCatName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveCatEdit(); }}
+                      style={{ flex: 1, minWidth: 160 }}
+                    />
+                    <button className="btn pri" onClick={saveCatEdit} disabled={savingCat || !editCatName.trim()}>
+                      {savingCat ? 'Saving…' : 'Save'}
+                    </button>
+                    <button className="btn ghost" onClick={() => setEditCatId(null)}>Cancel</button>
+                    <button className="btn ghost" style={{ color: 'var(--clay)' }} onClick={() => setConfirmCatId(editCatId)}>
+                      <Icon name="trash" size={14} /> Delete
+                    </button>
+                  </div>
+                  <ColorRow value={editCatColor} onChange={setEditCatColor} />
+                </div>
+              )}
+
+              {fieldErrors.category_id && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 6 }}>{fieldErrors.category_id}</div>}
+            </div>
+
+            <hr className="hr" />
+
+            {/* Details */}
+            <div className="grid grid-2cols">
+              <div className="form-field">
+                <label>{repeat ? 'Starts on' : 'Date'}</label>
+                <div
+                  className="form-input"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 12px', position: 'relative' }}
+                  onClick={(e) => { const inp = e.currentTarget.querySelector('input'); inp?.showPicker?.() || inp?.focus(); }}
+                >
+                  <Icon name="cal" size={17} />
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: date ? 'var(--ink)' : 'var(--muted)' }}>
+                    {date ? new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Pick a date'}
+                  </span>
+                  {!repeat && date !== today() && (
+                    <button type="button" className="chip" onClick={(e) => { e.stopPropagation(); setDate(today()); }} style={{ fontSize: 11 }}>
+                      Today
+                    </button>
+                  )}
+                  <input
+                    type="date" value={date} max={!repeat ? today() : undefined} onChange={(e) => setDate(e.target.value)}
+                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', border: 0 }}
+                  />
+                </div>
+                {fieldErrors.date && <div className="text-small" style={{ color: 'var(--clay)', marginTop: 4 }}>{fieldErrors.date}</div>}
+              </div>
+              <div className="form-field">
+                <label>Source / label</label>
+                <input className="form-input" value={source} onChange={(e) => setSource(e.target.value)} placeholder="e.g. Salary — ADNOC" />
+              </div>
+              <div className="form-field form-field--full-width">
+                <label>Notes</label>
+                <input className="form-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note" />
+              </div>
+            </div>
+
+            {/* Repeat (add mode only) */}
+            {!isEdit && (
+              <>
+                <hr className="hr" />
+                <div className="row between center">
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13.5 }}>Repeat this</div>
+                    <div className="muted text-small">Auto-create it on a schedule (salary, rent, subscriptions).</div>
+                  </div>
+                  <Toggle on={repeat} onClick={() => setRepeat((v) => !v)} />
+                </div>
+
+                {repeat && (
+                  <div className="grid grid-2cols">
+                    <div className="form-field">
+                      <label>Frequency</label>
+                      <select className="form-input" value={frequency} onChange={(e) => setFrequency(e.target.value)}>
+                        {FREQS.map((f) => <option key={f} value={f}>{f}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-field">
+                      <label>Every</label>
+                      <input className="form-input" type="number" min="1" value={interval} onChange={(e) => setIntervalN(e.target.value)} />
+                    </div>
+                    <div className="form-field">
+                      <label>Ends</label>
+                      <select className="form-input" value={ends} onChange={(e) => setEnds(e.target.value)}>
+                        <option value="never">Never (until I stop)</option>
+                        <option value="on_date">On a date</option>
+                        <option value="after_count">After N times</option>
+                      </select>
+                    </div>
+                    {ends === 'on_date' && (
+                      <div className="form-field">
+                        <label>End date</label>
+                        <input className="form-input" type="date" min={date} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                      </div>
+                    )}
+                    {ends === 'after_count' && (
+                      <div className="form-field">
+                        <label>Number of times</label>
+                        <input className="form-input" type="number" min="1" value={maxOcc} onChange={(e) => setMaxOcc(e.target.value)} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Delete (edit mode only) */}
+            {isEdit && (
+              <>
+                <hr className="hr" />
+                <button className="btn ghost" style={{ color: 'var(--clay)', alignSelf: 'flex-start' }} onClick={() => setConfirmOpen(true)} disabled={deleting || saving}>
+                  <Icon name="trash" size={15} /> Delete transaction
+                </button>
+              </>
+            )}
+          </>
         )}
       </div>
 
