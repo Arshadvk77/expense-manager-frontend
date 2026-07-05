@@ -28,17 +28,25 @@ export default function Splits() {
   const [bills, setBills] = useState([]);
   const [summary, setSummary] = useState(null);
   const [owedByMe, setOwedByMe] = useState([]);
+  const [people, setPeople] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [openPerson, setOpenPerson] = useState({}); // name => bool
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editBill, setEditBill] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [showBills, setShowBills] = useState(false); // toggle to see raw bill list (edit/delete)
 
   function load() {
     setLoading(true);
-    splitsAPI.list()
-      .then((res) => { setBills(res.bills || []); setSummary(res.summary); setOwedByMe(res.owed_by_me || []); })
+    Promise.all([splitsAPI.list(), splitsAPI.byPerson()])
+      .then(([res, pp]) => {
+        setBills(res.bills || []);
+        setSummary(res.summary);
+        setOwedByMe(res.owed_by_me || []);
+        setPeople(pp.people || []);
+      })
       .catch((err) => setError(err.message || 'Failed to load splits.'))
       .finally(() => setLoading(false));
   }
@@ -53,6 +61,10 @@ export default function Splits() {
   async function settle(pid, v) {
     try { await splitsAPI.settle(pid, v); load(); }
     catch (err) { setError(err.message || 'Could not update.'); }
+  }
+  async function settlePersonAll(name, isSettled) {
+    try { await splitsAPI.settlePerson(name, isSettled); load(); }
+    catch (err) { setError(err.message || 'Could not settle.'); }
   }
   async function confirmDelete() {
     try { await splitsAPI.remove(confirmId); setConfirmId(null); load(); }
@@ -103,87 +115,94 @@ export default function Splits() {
         />
       )}
 
+      {/* ===== WHO OWES YOU — per-person grouped ===== */}
       <div className="card pad-lg">
-        <div className="card-h"><div className="t">Your splits</div></div>
+        <div className="card-h"><div className="t">Who owes you</div></div>
         {loading && <div className="muted text-small" style={{ padding: 12 }}>Loading…</div>}
-        {!loading && bills.length === 0 && <div className="muted text-small" style={{ padding: 12 }}>No splits yet.</div>}
+        {!loading && people.length === 0 && <div className="muted text-small" style={{ padding: 12 }}>Nobody owes you right now. ✓</div>}
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {bills.map((b, i) => {
-            const payer = (b.participants || []).find((p) => Number(p.paid_amount) > 0);
-            const owing = (b.participants || []).filter((p) => Number(p.share_amount) > Number(p.paid_amount));
-            const outstanding = owing.filter((p) => !p.is_settled)
-              .reduce((s, p) => s + (Number(p.share_amount) - Number(p.paid_amount)), 0);
-
+          {people.map((person, i) => {
+            const isOpen = !!openPerson[person.name];
+            const hasOutstanding = person.total_owed > 0.001;
             return (
-              <div key={b.id} style={{ padding: '14px 0', borderTop: i ? '1px solid var(--line)' : 0 }}>
-                <div className="row between center split-bill-head" style={{ gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="row center" style={{ gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, fontSize: 14 }}>{b.title}</span>
-                      {b.category && (
-                        <span className="chip" style={{ background: (b.category.color || '#888') + '22', color: b.category.color || 'var(--ink)' }}>
-                          {b.category.name}
-                        </span>
-                      )}
-                    </div>
-                    <div className="muted text-small" style={{ marginTop: 2 }}>
-                      {b.date?.slice(0, 10)}{payer && <> · paid by {payer.name}</>}
-                    </div>
-                  </div>
-
-                  <div className="row center split-bill-actions" style={{ gap: 8, flexShrink: 0 }}>
-                    <span className="num text-small" style={{ color: outstanding > 0.01 ? 'var(--clay)' : 'var(--green)' }}>
-                      {outstanding > 0.01 ? `${fmt(outstanding)} pending` : 'All settled'}
+              <div key={person.name + i} style={{ padding: '12px 0', borderTop: i ? '1px solid var(--line)' : 0 }}>
+                {/* person header */}
+                <div className="row between center" style={{ gap: 10, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenPerson((p) => ({ ...p, [person.name]: !p[person.name] }))}
+                    style={{ border: 0, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, padding: 0, textAlign: 'left' }}
+                  >
+                    <span className="ava" style={{ width: 38, height: 38, borderRadius: 12, fontSize: 15, flexShrink: 0 }}>
+                      {(person.name || '?').charAt(0).toUpperCase()}
                     </span>
-                    <button className="btn ghost text-small" onClick={() => openEdit(b)}><Icon name="edit" size={14} /></button>
-                    <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(b.id)}><Icon name="trash" size={14} /></button>
+                    <span style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {person.name}
+                        {person.friend_user_id && <Icon name="user" size={12} />}
+                      </div>
+                      <div className="muted text-small">
+                        {person.items.length} item{person.items.length === 1 ? '' : 's'}
+                        {person.total_settled > 0 && ` · ${fmt(person.total_settled)} settled`}
+                      </div>
+                    </span>
+                    <Icon name={isOpen ? 'up' : 'down'} size={15} />
+                  </button>
+
+                  <div className="row center" style={{ gap: 10, flexShrink: 0 }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="num" style={{ fontWeight: 800, fontSize: 16, color: hasOutstanding ? 'var(--clay)' : 'var(--green)' }}>
+                        {person.currency} {fmt(person.total_owed)}
+                      </div>
+                      <div className="muted text-small">owes you</div>
+                    </div>
+                    {hasOutstanding && (
+                      <button className="btn pri text-small" onClick={() => settlePersonAll(person.name, true)}>
+                        Settle all
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {owing.map((p) => {
-                    const owes = Number(p.share_amount) - Number(p.paid_amount);
-                    return (
-                      <div
-                        key={p.id}
-                        className="split-owe-row"
-                        style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                      >
-                        <span className={'chip ' + (p.is_settled ? 'green' : 'gold')} style={{ flexShrink: 0 }}>
-                          {p.is_settled ? 'Paid' : 'Owes'}
+                {/* expanded: per-bill items with their own Mark paid */}
+                {isOpen && (
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 48 }}>
+                    {person.items.map((it) => (
+                      <div key={it.participant_id} className="split-owe-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span className={'chip ' + (it.is_settled ? 'green' : 'gold')} style={{ flexShrink: 0 }}>
+                          {it.is_settled ? 'Paid' : 'Owes'}
                         </span>
-
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontWeight: 600, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {p.name}
-                          </span>
+                        <span style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.bill_title}</span>
+                            {it.category && (
+                              <span className="chip" style={{ background: (it.category.color || '#888') + '22', color: it.category.color || 'var(--ink)' }}>
+                                {it.category.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="muted text-small">{it.date}</div>
                         </span>
-
-                        <span className="mono" style={{ fontWeight: 700, fontSize: 13.5, flexShrink: 0 }}>
-                          {b.currency} {fmt(owes)}
-                        </span>
-
+                        <span className="mono" style={{ fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{it.currency} {fmt(it.owes)}</span>
                         <button
-                          className={'btn text-small ' + (p.is_settled ? 'ghost' : 'pri')}
+                          className={'btn text-small ' + (it.is_settled ? 'ghost' : 'pri')}
                           style={{ flexShrink: 0, padding: '5px 12px' }}
-                          onClick={() => settle(p.id, !p.is_settled)}
+                          onClick={() => settle(it.participant_id, !it.is_settled)}
                         >
-                          {p.is_settled ? 'Undo' : 'Mark paid'}
+                          {it.is_settled ? 'Undo' : 'Mark paid'}
                         </button>
                       </div>
-                    );
-                  })}
-                  {owing.length === 0 && (
-                    <div className="muted text-small" style={{ paddingLeft: 4 }}>Everyone's even. ✓</div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
+      {/* ===== You owe (on other people's bills) ===== */}
       {owedByMe.length > 0 && (
         <div className="card pad-lg">
           <div className="card-h"><div className="t">You owe</div></div>
@@ -203,6 +222,52 @@ export default function Splits() {
           </div>
         </div>
       )}
+
+      {/* ===== All bills (edit / delete) — collapsed by default ===== */}
+      <div className="card pad-lg">
+        <div className="row between center" style={{ cursor: 'pointer' }} onClick={() => setShowBills((v) => !v)}>
+          <div className="t">All splits</div>
+          <button className="btn ghost text-small">
+            {showBills ? 'Hide' : `Show all (${bills.length})`} <Icon name={showBills ? 'up' : 'down'} size={14} />
+          </button>
+        </div>
+
+        {showBills && (
+          <div style={{ display: 'flex', flexDirection: 'column', marginTop: 8 }}>
+            {bills.length === 0 && <div className="muted text-small" style={{ padding: 12 }}>No splits yet.</div>}
+            {bills.map((b, i) => {
+              const payer = (b.participants || []).find((p) => Number(p.paid_amount) > 0);
+              const owing = (b.participants || []).filter((p) => Number(p.share_amount) > Number(p.paid_amount));
+              const outstanding = owing.filter((p) => !p.is_settled)
+                .reduce((s, p) => s + (Number(p.share_amount) - Number(p.paid_amount)), 0);
+              return (
+                <div key={b.id} className="row between center" style={{ padding: '12px 0', borderTop: i ? '1px solid var(--line)' : 0, gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="row center" style={{ gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{b.title}</span>
+                      {b.category && (
+                        <span className="chip" style={{ background: (b.category.color || '#888') + '22', color: b.category.color || 'var(--ink)' }}>
+                          {b.category.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="muted text-small" style={{ marginTop: 2 }}>
+                      {b.date?.slice(0, 10)}{payer && <> · paid by {payer.name}</>} · {fmt(Number(b.total_amount))} {b.currency}
+                    </div>
+                  </div>
+                  <div className="row center" style={{ gap: 8, flexShrink: 0 }}>
+                    <span className="num text-small" style={{ color: outstanding > 0.01 ? 'var(--clay)' : 'var(--green)' }}>
+                      {outstanding > 0.01 ? `${fmt(outstanding)} pending` : 'All settled'}
+                    </span>
+                    <button className="btn ghost text-small" onClick={() => openEdit(b)}><Icon name="edit" size={14} /></button>
+                    <button className="btn ghost text-small" style={{ color: 'var(--clay)' }} onClick={() => setConfirmId(b.id)}><Icon name="trash" size={14} /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <ConfirmDialog
         open={confirmId != null}
@@ -273,21 +338,45 @@ function SplitForm({ editBill, trackedCodes, currencies, categories, mainCurrenc
     if (inv.length === 0) return shares;
 
     if (method === 'equal') {
-      const each = Math.floor((t / inv.length) * 100) / 100;
-      let used = 0;
+      // work in integer cents to avoid float drift, then spread leftover cents fairly
+      const totalCents = Math.round(t * 100);
+      const n = inv.length;
+      const base = Math.floor(totalCents / n);   // everyone gets at least this many cents
+      let leftover = totalCents - base * n;       // 0..n-1 cents to distribute
+
       inv.forEach((p, k) => {
-        let s = each;
-        if (k === inv.length - 1) s = Math.round((t - used) * 100) / 100;
-        used += each;
-        shares[p._idx] = s;
+        // give the first `leftover` people one extra cent each — fairest spread
+        const cents = base + (k < leftover ? 1 : 0);
+        shares[p._idx] = cents / 100;
       });
     } else if (method === 'exact') {
       inv.forEach((p) => { shares[p._idx] = parseFloat(p.exact) || 0; });
     } else if (method === 'percent') {
       inv.forEach((p) => { shares[p._idx] = Math.round(((parseFloat(p.percent) || 0) / 100) * t * 100) / 100; });
     } else if (method === 'shares') {
-      const totalShares = inv.reduce((s, p) => s + (parseFloat(p.shares) || 0), 0) || 1;
-      inv.forEach((p) => { shares[p._idx] = Math.round(((parseFloat(p.shares) || 0) / totalShares) * t * 100) / 100; });
+      // proportional split in integer cents with fair remainder distribution
+      const totalCents = Math.round(t * 100);
+      const weights = inv.map((p) => Math.max(0, parseFloat(p.shares) || 0));
+      const weightSum = weights.reduce((s, w) => s + w, 0) || 1;
+
+      // first pass: floor each person's cents
+      let assigned = 0;
+      const raw = inv.map((p, k) => {
+        const exact = (weights[k] / weightSum) * totalCents;
+        const floorCents = Math.floor(exact);
+        assigned += floorCents;
+        return { idx: p._idx, floorCents, frac: exact - floorCents };
+      });
+
+      // distribute the remaining cents to the people with the largest fractional parts
+      let remaining = totalCents - assigned;
+      raw.sort((a, b) => b.frac - a.frac);
+      for (let k = 0; k < raw.length && remaining > 0; k++) {
+        raw[k].floorCents += 1;
+        remaining--;
+      }
+
+      raw.forEach((r) => { shares[r.idx] = r.floorCents / 100; });
     }
     return shares;
   }
