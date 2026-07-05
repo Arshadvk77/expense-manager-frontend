@@ -6,6 +6,7 @@ import { fmt } from '../lib/currency.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCurrencies } from '../hooks/useCurrencies.js';
 import { splitsAPI } from '../api/splits';
+import { categoriesAPI } from '../api/categories';
 import '../styles/main.scss';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -27,6 +28,7 @@ export default function Splits() {
   const [bills, setBills] = useState([]);
   const [summary, setSummary] = useState(null);
   const [owedByMe, setOwedByMe] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -41,6 +43,12 @@ export default function Splits() {
       .finally(() => setLoading(false));
   }
   useEffect(load, []);
+
+  useEffect(() => {
+    categoriesAPI.list({ type: 'expense' })
+      .then((res) => setCategories((res.categories || []).filter((c) => c.parent_id === null)))
+      .catch(() => setCategories([]));
+  }, []);
 
   async function settle(pid, v) {
     try { await splitsAPI.settle(pid, v); load(); }
@@ -64,10 +72,7 @@ export default function Splits() {
       {error && <div className="card" style={{ borderColor: 'var(--clay)', color: 'var(--clay)', padding: '12px 16px' }}>{error}</div>}
 
       {summary && (
-        <div
-          className="khaleej-split-tabs"
-          style={{ display: 'flex', flexWrap: 'nowrap', gap: 8, width: '100%' }}
-        >
+        <div className="khaleej-split-tabs" style={{ display: 'flex', flexWrap: 'nowrap', gap: 8, width: '100%' }}>
           <div className="khaleej-split-tab card" style={{ flex: '1 1 0', minWidth: 0, padding: '12px 8px', textAlign: 'center' }}>
             <div className="muted" style={{ fontSize: 11 }}>Owed to you</div>
             <div className="num" style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)', wordBreak: 'break-word' }}>{fmt(summary.owed_to_me)}</div>
@@ -77,10 +82,8 @@ export default function Splits() {
             <div className="num" style={{ fontSize: 18, fontWeight: 800, color: 'var(--clay)', wordBreak: 'break-word' }}>{fmt(summary.i_owe)}</div>
           </div>
           <div className="khaleej-split-tab card" style={{ flex: '1 1 0', minWidth: 0, padding: '12px 8px', textAlign: 'center' }}>
-            <div className="muted" style={{ fontSize: 11 }}>Net</div>
-            <div className="num" style={{ fontSize: 18, fontWeight: 800, color: summary.net >= 0 ? 'var(--green)' : 'var(--clay)', wordBreak: 'break-word' }}>
-              {summary.net >= 0 ? '+' : ''}{fmt(summary.net)}
-            </div>
+            <div className="muted" style={{ fontSize: 11 }}>Settled</div>
+            <div className="num" style={{ fontSize: 18, fontWeight: 800, color: 'var(--wine)', wordBreak: 'break-word' }}>{fmt(summary.settled_total || 0)}</div>
           </div>
         </div>
       )}
@@ -90,6 +93,7 @@ export default function Splits() {
           editBill={editBill}
           trackedCodes={trackedCodes}
           currencies={currencies}
+          categories={categories}
           mainCurrency={user?.preferences?.main_currency || trackedCodes[0]}
           myName={user?.name || 'Me'}
           myUserId={user?.id}
@@ -115,8 +119,13 @@ export default function Splits() {
               <div key={b.id} style={{ padding: '14px 0', borderTop: i ? '1px solid var(--line)' : 0 }}>
                 <div className="row between center split-bill-head" style={{ gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>
-                      {b.title}
+                    <div className="row center" style={{ gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{b.title}</span>
+                      {b.category && (
+                        <span className="chip" style={{ background: (b.category.color || '#888') + '22', color: b.category.color || 'var(--ink)' }}>
+                          {b.category.name}
+                        </span>
+                      )}
                     </div>
                     <div className="muted text-small" style={{ marginTop: 2 }}>
                       {b.date?.slice(0, 10)}{payer && <> · paid by {payer.name}</>}
@@ -139,9 +148,7 @@ export default function Splits() {
                       <div
                         key={p.id}
                         className="split-owe-row"
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 10
-                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10 }}
                       >
                         <span className={'chip ' + (p.is_settled ? 'green' : 'gold')} style={{ flexShrink: 0 }}>
                           {p.is_settled ? 'Paid' : 'Owes'}
@@ -209,10 +216,11 @@ export default function Splits() {
   );
 }
 
-function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, myUserId, onClose, onSaved, onError }) {
+function SplitForm({ editBill, trackedCodes, currencies, categories, mainCurrency, myName, myUserId, onClose, onSaved, onError }) {
   const isEdit = !!editBill;
 
   const [title, setTitle] = useState(editBill?.title || '');
+  const [categoryId, setCategoryId] = useState(editBill?.category_id ?? '');
   const [total, setTotal] = useState(editBill ? String(editBill.total_amount) : '');
   const [currency, setCurrency] = useState(editBill?.currency || mainCurrency || 'USD');
   const [date, setDate] = useState(editBill?.date?.slice(0, 10) || today());
@@ -312,7 +320,7 @@ function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, m
 
     setSaving(true);
     try {
-      const payload = { title, total_amount: t, currency, split_method: method, date, participants };
+      const payload = { title, category_id: categoryId || null, total_amount: t, currency, split_method: method, date, participants };
       if (isEdit) await splitsAPI.update(editBill.id, payload);
       else await splitsAPI.create(payload);
       onSaved();
@@ -339,6 +347,13 @@ function SplitForm({ editBill, trackedCodes, currencies, mainCurrency, myName, m
           <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
             {trackedCodes.map((c) => <option key={c} value={c}>{c}</option>)}
             {currencies.filter((c) => !trackedCodes.includes(c.code)).map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label>Category (optional)</label>
+          <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">None</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div className="field">
